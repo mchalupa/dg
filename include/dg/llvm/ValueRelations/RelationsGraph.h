@@ -7,12 +7,12 @@
 #endif
 
 #include <bitset>
+#include <cassert>
 #include <functional>
 #include <map>
 #include <memory>
 #include <set>
 #include <stack>
-#include <vector>
 
 namespace dg {
 namespace vr {
@@ -26,8 +26,9 @@ RelationType inverted(RelationType type);
 RelationType negated(RelationType type);
 RelationBits conflicting(RelationType type);
 bool transitive(RelationType type);
-const RelationBits allRelations;
-const RelationBits undirected;
+
+extern const RelationBits allRelations;
+extern const RelationBits undirected;
 
 #ifndef NDEBUG
 void dumpRelation(RelationType r);
@@ -232,12 +233,12 @@ class RelationsGraph {
 
     class EdgeIterator {
         using BucketIterator = UniqueBucketSet::iterator;
+        Bucket::BucketSet visited;
 
         BucketIterator bucketIt;
         BucketIterator endIt;
         Bucket::EdgeIterator edgeIt;
 
-        Bucket::BucketSet visited;
         RelationBits allowedEdges;
 
         void nextViableEdge() {

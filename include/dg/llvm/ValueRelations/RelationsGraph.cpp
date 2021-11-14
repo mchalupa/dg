@@ -1,6 +1,7 @@
 #include "RelationsGraph.h"
 
 #include <algorithm>
+#include <cmath>
 #include <iterator>
 
 namespace dg {
@@ -31,6 +32,8 @@ RelationType inverted(RelationType type) {
     case RelationType::PF:
         return RelationType::PT;
     }
+    assert(0 && "unreachable");
+    abort();
 }
 
 RelationType negated(RelationType type) {
@@ -69,6 +72,8 @@ RelationBits conflicting(RelationType type) {
     case RelationType::PF:
         return 0;
     }
+    assert(0 && "unreachable");
+    abort();
 }
 
 void addImplied(RelationBits &bits) {
@@ -109,6 +114,8 @@ bool transitive(RelationType type) {
     case RelationType::PF:
         return false;
     }
+    assert(0 && "unreachable");
+    abort();
 }
 
 const RelationBits allRelations = ~0;
@@ -195,7 +202,9 @@ bool shouldSkip(const Bucket::RelationEdge &edge) {
 RelationsMap getAugmentedRelated(const RelationsGraph &graph, Bucket &start,
                                  const RelationBits &relations,
                                  bool toFirstStrict) {
-    RelationsMap result = {std::make_pair(start, RelationType::EQ)};
+    RelationsMap result;
+    result[start] = toInt(RelationType::EQ);
+
     Bucket::BucketSet nestedVisited;
     for (auto it = graph.begin(start, relations); it != graph.end(); ++it) {
         if (shouldAdd(*it, start))
@@ -224,7 +233,7 @@ RelationsMap getAugmentedRelated(const RelationsGraph &graph, Bucket &start,
 
 RelationsMap RelationsGraph::getRelated(Bucket &start,
                                         const RelationBits &relations,
-                                        bool toFirstStrict = false) const {
+                                        bool toFirstStrict) const {
     RelationBits augmented = getAugmented(relations);
 
     RelationsMap result =
@@ -244,14 +253,14 @@ RelationBits fromMaybeBetween(const RelationsGraph &graph, Bucket &lt,
 }
 
 bool RelationsGraph::areRelated(Bucket &lt, RelationType type, Bucket &rt,
-                                RelationBits *maybeBetween = nullptr) const {
+                                RelationBits *maybeBetween) const {
     RelationBits between = fromMaybeBetween(*this, lt, rt, maybeBetween);
     return between[toInt(type)];
 }
 
-bool RelationsGraph::haveConflictingRelation(
-        Bucket &lt, RelationType type, Bucket &rt,
-        RelationBits *maybeBetween = nullptr) const {
+bool RelationsGraph::haveConflictingRelation(Bucket &lt, RelationType type,
+                                             Bucket &rt,
+                                             RelationBits *maybeBetween) const {
     switch (type) {
     case RelationType::EQ:
     case RelationType::NE:
@@ -269,6 +278,8 @@ bool RelationsGraph::haveConflictingRelation(
     case RelationType::PF:
         return haveConflictingRelation(rt, inverted(type), lt);
     }
+    assert(0 && "unreachable");
+    abort();
 }
 
 Bucket::BucketSet getIntersectingNonstrict(const RelationsGraph &graph,
@@ -276,10 +287,18 @@ Bucket::BucketSet getIntersectingNonstrict(const RelationsGraph &graph,
     RelationsMap ltGE = graph.getRelated(lt, p(RelationType::GE));
     RelationsMap rtLE = graph.getRelated(rt, p(RelationType::LE));
 
-    Bucket::BucketSet result;
+    RelationsMap result;
     std::set_intersection(ltGE.begin(), ltGE.end(), rtLE.begin(), rtLE.end(),
-                          std::inserter(result, result.begin()));
-    return result;
+                          std::inserter(result, result.begin()),
+                          [](auto &ltPair, auto &rtPair) {
+                              return ltPair.first == rtPair.first;
+                          });
+
+    Bucket::BucketSet other;
+    for (auto &pari : result)
+        other.emplace(pari.first);
+
+    return other;
 }
 
 RelationBits inverted(const RelationBits &other) {
@@ -291,7 +310,7 @@ RelationBits inverted(const RelationBits &other) {
 }
 
 void RelationsGraph::addRelation(Bucket &lt, RelationType type, Bucket &rt,
-                                 RelationBits *maybeBetween = nullptr) {
+                                 RelationBits *maybeBetween) {
     RelationBits between = fromMaybeBetween(*this, lt, rt, maybeBetween);
     if (areRelated(lt, type, rt, &between))
         return;
