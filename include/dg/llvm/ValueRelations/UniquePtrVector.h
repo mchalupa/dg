@@ -1,6 +1,9 @@
 #ifndef DG_LLVM_VALUE_RELATIONS_UNIQUE_PTR_VECTOR_H_
 #define DG_LLVM_VALUE_RELATIONS_UNIQUE_PTR_VECTOR_H_
 
+#include <memory>
+#include <vector>
+
 namespace dg {
 namespace vr {
 
