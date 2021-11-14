@@ -173,7 +173,7 @@ struct VRLocation {
     VRLocation &getTreePredecessor() const;
 
 #ifndef NDEBUG
-    void dump() const { std::cout << id << std::endl; }
+    void dump() const { std::cout << id << "\n"; }
 #endif
 };
 
