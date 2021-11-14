@@ -56,9 +56,10 @@ bool RelationsAnalyzer::isDangerous(I inst) {
 }
 
 bool RelationsAnalyzer::mayHaveAlias(const ValueRelations &graph, V val) const {
-    for (const auto *eqval : graph.getEqual(val))
-        if (mayHaveAlias(eqval))
+    for (const auto *eqval : graph.getEqual(val)) {
+        if (!hasKnownOrigin(graph, eqval) || mayHaveAlias(eqval))
             return true;
+    }
     return false;
 }
 
@@ -146,20 +147,10 @@ bool RelationsAnalyzer::mayOverwrite(I inst, V address) const {
     const auto *store = llvm::cast<llvm::StoreInst>(inst);
     V memoryPtr = store->getPointerOperand();
 
-    if (sameBase(graph, memoryPtr, address))
-        return true;
-
-    if (!graph.contains(address))
-        return !hasKnownOrigin(address) || mayHaveAlias(address);
-
-    if (!hasKnownOrigin(memoryPtr) &&
-        (!graph.contains(memoryPtr) || !hasKnownOrigin(graph, memoryPtr)))
-        return !hasKnownOrigin(graph, address) || mayHaveAlias(graph, address);
-
-    if (mayHaveAlias(memoryPtr))
-        return !hasKnownOrigin(graph, address);
-
-    return false;
+    return sameBase(graph, memoryPtr, address) ||
+           (!hasKnownOrigin(graph, memoryPtr) &&
+            mayHaveAlias(graph, address)) ||
+           (mayHaveAlias(graph, memoryPtr) && !hasKnownOrigin(graph, address));
 }
 
 const llvm::Value *getArgument(const ValueRelations &graph,
