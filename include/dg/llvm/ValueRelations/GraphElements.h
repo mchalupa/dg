@@ -263,11 +263,17 @@ class VRCodeGraph {
             return !next || Visit::wasVisited(next) || inOtherFunction(edge);
         }
 
+        void visit(VRLocation *loc) {
+            while (!Visit::wasVisited(loc))
+                Visit::find(loc);
+        }
+
       public:
         DFSIt() = default;
         DFSIt(const llvm::Function &f, VRLocation *start, Dir d)
                 : function(&f), dir(d) {
             stack.emplace_back(start, 0, nullptr);
+            visit(start);
         }
 
         friend bool operator==(const DFSIt &lt, const DFSIt &rt) {
