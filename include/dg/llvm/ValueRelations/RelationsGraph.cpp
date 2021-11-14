@@ -202,7 +202,7 @@ RelationsMap &filterResult(const Relations &relations, RelationsMap &result) {
 
 bool processEdge(const Bucket::RelationEdge &edge, Relations::Type strictRel,
                  Relations &updated, bool toFirstStrict,
-                 const std::set<Bucket::RelationEdge> &firstStrictEdges) {
+                 const Bucket::iterator::Visited &firstStrictEdges) {
     if (!Relations::transitiveOver(strictRel, edge.rel())) // edge not relevant
         return true;
     if (!toFirstStrict) { // finding all strictly related
@@ -234,7 +234,7 @@ RelationsMap getAugmentedRelated(const RelationsGraph &graph,
                                  bool toFirstStrict) {
     RelationsMap result;
 
-    std::set<Bucket::RelationEdge> firstStrictEdges;
+    Bucket::iterator::Visited firstStrictEdges;
     for (auto it = graph.begin_related(start, relations);
          it != graph.end_related(start);
          /*incremented in body */) {
@@ -247,7 +247,7 @@ RelationsMap getAugmentedRelated(const RelationsGraph &graph,
             ++it;
     }
 
-    Bucket::ConstBucketSet nestedVisited;
+    Bucket::iterator::Visited nestedVisited;
     for (Bucket::RelationEdge edge : firstStrictEdges) {
         const Bucket &nestedStart = edge.to();
         Relations::Type strictRel = edge.rel();
@@ -259,7 +259,7 @@ RelationsMap getAugmentedRelated(const RelationsGraph &graph,
             shouldSkip = processEdge(*it, strictRel, result[it->to()],
                                      toFirstStrict, firstStrictEdges);
             if (shouldSkip)
-                nestedVisited.erase(it->to());
+                nestedVisited.erase(*it); // it->to());
         }
     }
     return result;

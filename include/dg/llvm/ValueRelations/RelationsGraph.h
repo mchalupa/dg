@@ -115,6 +115,10 @@ struct Bucket {
         Relations::Type rel() const { return _rel; }
         const Bucket &to() const { return _to; }
 
+        RelationEdge inverted() const {
+            return RelationEdge(_to, Relations::inverted(_rel), _from);
+        }
+
 #ifndef NDEBUG
         friend std::ostream &operator<<(std::ostream &out,
                                         const RelationEdge &edge) {
@@ -127,6 +131,7 @@ struct Bucket {
     class DirectRelIterator {
         using SetIterator = typename BucketSet::const_iterator;
         using RelationIterator = decltype(Relations::all)::const_iterator;
+        friend class EdgeIterator;
 
         RelationIterator relationIt;
         SetIterator bucketIt;
@@ -315,24 +320,15 @@ struct Bucket {
 
     /********************** begin iterator stuff *********************/
 
-    class EdgeIterator {
-        std::vector<DirectRelIterator> stack;
-        std::reference_wrapper<ConstBucketSet> visited;
-
-      public:
+    struct EdgeIterator {
         Relations allowedEdges;
         bool undirectedOnly;
         bool relationsFocused;
+        using Visited = std::set<RelationEdge>;
 
       private:
-        bool isInvertedEdge() const {
-            return stack.size() >= 2 &&
-                   std::any_of(std::next(stack.rbegin()), stack.rend(),
-                               [&topTo = stack.back()->to()](
-                                       const DirectRelIterator &it) {
-                                   return it->from() == topTo;
-                               });
-        }
+        std::vector<DirectRelIterator> stack;
+        std::reference_wrapper<Visited> visited;
 
         bool shouldFollowThrough() const {
             if (stack.size() < 2)
@@ -341,12 +337,20 @@ struct Bucket {
             return Relations::transitiveOver(prev, stack.back()->rel());
         }
 
+        bool isViable() {
+            return visited.get().find(*stack.back()) == visited.get().end() &&
+                   allowedEdges.has(stack.back()->rel()) &&
+                   (!relationsFocused || shouldFollowThrough());
+        }
+
         bool nextViableTopEdge() {
             while (stack.back().nextViableEdge()) {
-                if (allowedEdges.has(stack.back()->rel()) &&
-                    (!undirectedOnly || !isInvertedEdge()) &&
-                    (!relationsFocused || shouldFollowThrough()))
+                if (isViable()) {
+                    visited.get().emplace(*stack.back());
+                    if (undirectedOnly)
+                        visited.get().emplace(stack.back()->inverted());
                     return true;
+                }
                 stack.back().inc();
             }
             return false;
@@ -360,18 +364,15 @@ struct Bucket {
 
       public:
         // for end iterator
-        EdgeIterator(ConstBucketSet &v) : visited(v) {}
+        EdgeIterator(Visited &v) : visited(v) {}
         // for begin iterator
-        EdgeIterator(const Bucket &start, ConstBucketSet &v, const Relations &a,
+        EdgeIterator(const Bucket &start, Visited &v, const Relations &a,
                      bool u, bool r)
-                : visited(v), allowedEdges(a), undirectedOnly(u),
-                  relationsFocused(r) {
+                : allowedEdges(a), undirectedOnly(u), relationsFocused(r),
+                  visited(v) {
             assert(start.relatedBuckets.begin() != start.relatedBuckets.end() &&
                    "at least one relation");
-            if (visited.get().find(start) != visited.get().end())
-                return;
 
-            visited.get().emplace(start);
             stack.emplace_back(start);
             nextViableEdge();
         }
@@ -395,16 +396,9 @@ struct Bucket {
             stack.emplace_back(current);
 
             // plan visit to first successor of "to" bucket if unexplored so far
-            if (visited.get().find(to) == visited.get().end()) {
-                stack.emplace_back(to);
-
-                if (!relationsFocused || nextViableTopEdge())
-                    visited.get().emplace(to);
-                else
-                    stack.pop_back();
-            }
-
+            stack.emplace_back(to);
             nextViableEdge();
+
             return *this;
         }
 
@@ -414,7 +408,7 @@ struct Bucket {
             return *this;
         }
 
-        void setVisited(ConstBucketSet &v) { visited = v; }
+        void setVisited(Visited &v) { visited = v; }
 
         EdgeIterator operator++(int) {
             auto copy = *this;
@@ -429,17 +423,17 @@ struct Bucket {
   public:
     using iterator = EdgeIterator;
 
-    iterator begin(ConstBucketSet &visited, const Relations &relations,
+    iterator begin(iterator::Visited &visited, const Relations &relations,
                    bool undirectedOnly, bool relationsFocused) const {
         return iterator(*this, visited, relations, undirectedOnly,
                         relationsFocused);
     }
 
-    iterator begin(ConstBucketSet &visited) const {
+    iterator begin(iterator::Visited &visited) const {
         return begin(visited, allRelations, true, true);
     }
 
-    iterator end(ConstBucketSet &visited) const { return iterator(visited); }
+    iterator end(iterator::Visited &visited) const { return iterator(visited); }
 
     DirectRelIterator begin() const { return DirectRelIterator(*this); }
 
@@ -473,7 +467,7 @@ class RelationsGraph {
 
     class EdgeIterator {
         using BucketIterator = UniqueBucketSet::iterator;
-        Bucket::ConstBucketSet visited;
+        Bucket::iterator::Visited visited;
 
         BucketIterator bucketIt;
         BucketIterator endIt;
@@ -612,7 +606,9 @@ class RelationsGraph {
         return iterator(endIt);
     }
 
-    iterator begin() const { return begin(allRelations, true); }
+    iterator begin() const {
+        return begin(Relations().eq().ne().le().lt().pt());
+    }
 
     iterator begin(const Relations &relations,
                    bool undirectedOnly = true) const {
