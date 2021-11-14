@@ -226,6 +226,13 @@ void RelationsAnalyzer::gepGen(ValueRelations &graph,
     if (gep->hasAllZeroIndices())
         graph.setEqual(gep, gep->getPointerOperand());
 
+    if (const auto *i = llvm::dyn_cast<llvm::ConstantInt>(gep->getOperand(1))) {
+        if (i->isOne())
+            graph.set(gep->getPointerOperand(), Relations::SLT, gep);
+        else if (i->isMinusOne())
+            graph.set(gep->getPointerOperand(), Relations::SGT, gep);
+    }
+
     for (auto it = graph.begin_buckets(Relations().pt());
          it != graph.end_buckets(); ++it) {
         for (V from : graph.getEqual(it->from())) {
