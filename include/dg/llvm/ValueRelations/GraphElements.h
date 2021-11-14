@@ -2,8 +2,8 @@
 #define DG_LLVM_VALUE_RELATIONS_GRAPH_ELEMENTS_HPP_
 
 #include <cassert>
-#include <queue>
 #include <list>
+#include <queue>
 
 #include <llvm/IR/Instructions.h>
 
@@ -222,111 +222,145 @@ struct VRLocation {
 
 struct VRCodeGraph {
     friend struct GB;
-    friend struct VRCodeGraphIterator;
 
-    using VRBBlock = UniquePtrVector<VRLocation>;
-    using VRBBlockHandle = unsigned;
-
-    std::vector<VRBBlock> vrblocks;
-    unsigned totalLocations = 0;
-
-    std::vector<const llvm::Function *> functions;
-    std::map<const llvm::BasicBlock *, VRBBlockHandle> blockMapping;
+    UniquePtrVector<VRLocation> locations;
+    std::map<const llvm::Function *, VRLocation *> functionMapping;
     // VRLocation corresponding to the state of the program BEFORE executing the
     // instruction
     std::map<const llvm::Instruction *, VRLocation *> locationMapping;
 
     bool categorizedEdges = false;
 
-    VRBBlockHandle newVRBBlock() {
-        vrblocks.emplace_back();
-        return vrblocks.size() - 1;
+    VRLocation &newVRLocation() {
+        locations.emplace_back(locations.size());
+        return locations.back();
     }
 
-    VRBBlockHandle newVRBBlock(const llvm::BasicBlock *b) {
-        assert(blockMapping.find(b) == blockMapping.end());
-
-        VRBBlockHandle block = newVRBBlock();
-        blockMapping.emplace(b, block);
-        return block;
-    }
-
-    VRLocation &newVRLocation(VRBBlockHandle vrblock) {
-        vrblocks[vrblock].emplace_back(++totalLocations);
-        return vrblocks[vrblock].back();
-    }
-
-    VRLocation &newVRLocation(VRBBlockHandle vrblock,
-                              const llvm::Instruction *inst) {
+    VRLocation &newVRLocation(const llvm::Instruction *inst) {
         assert(locationMapping.find(inst) == locationMapping.end());
 
-        VRLocation &loc = newVRLocation(vrblock);
+        VRLocation &loc = newVRLocation();
         locationMapping.emplace(inst, &loc);
         return loc;
     }
 
-    VRLocation &insertAfter(const llvm::BasicBlock *b) {
-        VRBBlockHandle h = getVRBBlockHandle(b);
-        VRBBlockHandle newH = h + 1;
-
-        vrblocks.emplace(vrblocks.begin() + newH);
-        return newVRLocation(newH);
+    void setEntryLocation(const llvm::Function *f, VRLocation &loc) {
+        functionMapping.emplace(f, &loc);
     }
-
-    void addFunction(const llvm::Function *f) { functions.emplace_back(f); }
 
   public:
-    VRBBlockHandle getVRBBlockHandle(const llvm::BasicBlock *b) const {
-        return blockMapping.at(b);
-    }
-
-    const VRBBlock &getVRBBlock(const llvm::BasicBlock *b) const {
-        return vrblocks[getVRBBlockHandle(b)];
-    }
-
     VRLocation &getVRLocation(const llvm::Instruction *ptr) const {
         return *locationMapping.at(ptr);
     }
 
     VRLocation &getEntryLocation(const llvm::Function *f) const {
-        return getVRBBlock(&f->getEntryBlock()).front();
+        return *functionMapping.at(f);
+    }
+
+    struct VRFunctionIterator {
+        VRFunctionIterator() = default;
+        VRFunctionIterator(const llvm::Function *f, VRLocation *start, bool e)
+                : function(f), categorizedEdges(e) {
+            queue.emplace(start);
+            visited.emplace(start);
+        }
+
+        VRLocation &operator*() const { return *operator->(); }
+        VRLocation *operator->() const { return queue.front(); }
+
+        friend bool operator==(const VRFunctionIterator &lt,
+                               const VRFunctionIterator &rt) {
+            return lt.queue == rt.queue;
+        }
+
+        friend bool operator!=(const VRFunctionIterator &lt,
+                               const VRFunctionIterator &rt) {
+            return !(lt == rt);
+        }
+
+        VRFunctionIterator &operator++() {
+            VRLocation *current = queue.front();
+            queue.pop();
+
+            for (VREdge *edge : current->getSuccessors()) {
+                // do not explore if there is no target or if target was already
+                // explored
+                if (!edge->target ||
+                    visited.find(edge->target) != visited.end())
+                    continue;
+
+                // do not explore if target is in other function
+                if (edge->op->isInstruction()) {
+                    const llvm::Instruction *inst =
+                            static_cast<VRInstruction *>(edge->op.get())
+                                    ->getInstruction();
+                    if (inst->getFunction() != function) {
+                        assert(0 && "has edge to other function");
+                        continue;
+                    }
+                }
+
+                // if there is still other unexplored path to the join, then
+                // wait untill it is explored also
+                if (categorizedEdges && edge->target->isJustBranchJoin()) {
+                    auto pair = counts.emplace(edge->target, 1);
+
+                    unsigned targetFoundTimes = pair.first->second;
+                    if (targetFoundTimes != edge->target->predecessors.size())
+                        continue;
+                }
+
+                // otherwise set the target to be explored
+                queue.emplace(edge->target);
+                visited.emplace(edge->target);
+            }
+
+            return *this;
+        }
+
+        VRFunctionIterator operator++(int) {
+            auto copy = *this;
+            ++*this;
+            return copy;
+        }
+
+      private:
+        const llvm::Function *function;
+        std::queue<VRLocation *> queue;
+        std::set<VRLocation *> visited;
+
+        bool categorizedEdges;
+        std::map<VRLocation *, unsigned> counts;
+    };
+
+    VRFunctionIterator begin(const llvm::Function *f) const {
+        return VRFunctionIterator(f, &getEntryLocation(f), categorizedEdges);
+    }
+    VRFunctionIterator end(const llvm::Function * /*f*/) const {
+        return VRFunctionIterator();
     }
 
     struct VRCodeGraphIterator {
-        using value_type = VRLocation;
-        using difference_type = uint64_t;
-        using reference = value_type &;
-        using pointer = value_type *;
-        using iterator_category = std::forward_iterator_tag;
+        using FunctionMapping = std::map<const llvm::Function *, VRLocation *>;
+        using MappingIterator = typename FunctionMapping::const_iterator;
 
         VRCodeGraphIterator() = default;
-        VRCodeGraphIterator(const std::vector<VRBBlock> &c, bool begin)
-                : // VRCodeGraphIterator(const VRCodeGraph& o):
-                  toBlock(begin ? c.begin() : c.end()), endBlock(c.end()),
-                  toLocation(c.begin()->begin())
-        // functions(f),
-        // vrblocks(b),
-        // owner(o),
-        // visited(b.size()),
-        // queue{
-        // o.getVRBBlockHandle(&o.functions[currentFunction]->getEntryBlock()) },
-        // toLocation(o.vrblocks[queue.front()].begin())
-        {
-            // visited[queue.front()] = true;
-        }
+        VRCodeGraphIterator(MappingIterator end)
+                : intoMapping(end), endMapping(end) {}
+        VRCodeGraphIterator(MappingIterator begin, MappingIterator end, bool e)
+                : intoMapping(begin), endMapping(end),
+                  intoFunction(begin->first, begin->second, e),
+                  categorizedEdges(e) {}
 
-        reference operator*() const { return *toLocation; }
-        pointer operator->() const { return &operator*(); }
+        VRLocation &operator*() { return *intoFunction; }
+        VRLocation *operator->() { return &operator*(); }
 
         friend bool operator==(const VRCodeGraphIterator &lt,
                                const VRCodeGraphIterator &rt) {
-            if (lt.toBlock == lt.endBlock)
-                return rt.toBlock == rt.endBlock;
-            if (rt.toBlock == rt.endBlock)
-                return false;
-            return lt.toLocation == rt.toLocation;
-            // return (lt.toBlock != lt.endBlock || rt.toBlock != rt.endBlock)
-            //    || lt.toLocation == rt.toLocation;
+            bool ltIsEnd = lt.intoMapping == lt.endMapping;
+            bool rtIsEnd = rt.intoMapping == rt.endMapping;
+            return (ltIsEnd && rtIsEnd) ||
+                   (!ltIsEnd && !rtIsEnd && lt.intoFunction == rt.intoFunction);
         }
 
         friend bool operator!=(const VRCodeGraphIterator &lt,
@@ -335,26 +369,16 @@ struct VRCodeGraph {
         }
 
         VRCodeGraphIterator &operator++() {
-            ++toLocation;
-            if (toLocation == toBlock->end()) {
-                ++toBlock;
-                if (toBlock != endBlock) {
-                    toLocation = toBlock->begin();
-                    assert(toLocation != toBlock->end());
-                }
+            ++intoFunction;
+            if (intoFunction == VRFunctionIterator()) {
+                ++intoMapping;
+                if (intoMapping != endMapping)
+                    intoFunction = VRFunctionIterator(intoMapping->first,
+                                                      intoMapping->second,
+                                                      categorizedEdges);
             }
-
             return *this;
         }
-
-        /*VRCodeGraphIterator& operator++() {
-            ++toLocation;
-
-            if (toLocation == o.vrblocks[queue.front()].end()) {
-                const VRBBlock& block = o.vrblocks[queue.front()].end();
-                for (VREdge* edge : block.back().getSuccLocations())
-            }
-        }*/
 
         VRCodeGraphIterator operator++(int) {
             auto copy = *this;
@@ -363,39 +387,26 @@ struct VRCodeGraph {
         }
 
       private:
-        // const VRCodeGraph& owner;
-        // const std::vector<const llvm::Function*>& functions;
-        // unsigned currentFunction = 0;
+        MappingIterator intoMapping;
+        MappingIterator endMapping;
 
-        // const std::vector<VRBBlock>& vrblocks;
-        // std::vector<bool> visited;
-
-        // std::queue<VRBBlockHandle> queue;
-
-        typename std::vector<VRBBlock>::const_iterator toBlock;
-        typename std::vector<VRBBlock>::const_iterator endBlock;
-        typename VRBBlock::iterator toLocation;
+        VRFunctionIterator intoFunction;
+        bool categorizedEdges;
     };
 
     using iterator = VRCodeGraphIterator;
 
     iterator begin() const {
-        return vrblocks.empty() ? iterator() : iterator(vrblocks, true);
-    }
-    iterator end() const {
-        return vrblocks.empty() ? iterator() : iterator(vrblocks, false);
+        return functionMapping.empty()
+                       ? iterator()
+                       : iterator(functionMapping.begin(),
+                                  functionMapping.end(), categorizedEdges);
     }
 
-#ifndef NDEBUG
-    void dump() {
-        for (VRBBlock &vr : vrblocks) {
-            for (VRLocation &loc : vr) {
-                loc.dump();
-            }
-            std::cout << std::endl;
-        }
+    iterator end() const {
+        return functionMapping.empty() ? iterator()
+                                       : iterator(functionMapping.end());
     }
-#endif
 };
 
 struct VRBBlock {

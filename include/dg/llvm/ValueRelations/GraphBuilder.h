@@ -177,17 +177,14 @@ struct GB {
     const llvm::Module &module;
     VRCodeGraph &codeGraph;
 
-    using VRBBlockHandle = VRCodeGraph::VRBBlockHandle;
-    using VRBBlock = const VRCodeGraph::VRBBlock &;
-
-    GB(const llvm::Module &m, VRCodeGraph &c) : module(m), codeGraph(c) {}
+    std::map<const llvm::BasicBlock *, VRLocation *> fronts;
+    std::map<const llvm::BasicBlock *, VRLocation *> backs;
 
     void build() {
         for (const llvm::Function &function : module) {
             if (function.isDeclaration())
                 continue;
 
-            codeGraph.addFunction(&function);
             buildBlocks(function);
             buildTerminators(function);
         }
@@ -198,23 +195,28 @@ struct GB {
             assert(block.size() != 0);
             buildBlock(block);
         }
+
+        codeGraph.setEntryLocation(
+                &function,
+                codeGraph.getVRLocation(&function.getEntryBlock().front()));
     }
 
     void buildTerminators(const llvm::Function &function) {
         for (const llvm::BasicBlock &block : function) {
-            VRBBlock vrblock = codeGraph.getVRBBlock(&block);
+            assert(backs.find(&block) != backs.end());
+            VRLocation &last = *backs[&block];
 
             const llvm::Instruction *terminator = block.getTerminator();
             if (auto branch = llvm::dyn_cast<llvm::BranchInst>(terminator)) {
-                buildBranch(branch, block);
+                buildBranch(branch, last);
 
             } else if (auto swtch =
                                llvm::dyn_cast<llvm::SwitchInst>(terminator)) {
-                buildSwitch(swtch, &block, vrblock);
+                buildSwitch(swtch, last);
 
             } else if (auto rturn =
                                llvm::dyn_cast<llvm::ReturnInst>(terminator)) {
-                buildReturn(rturn, vrblock);
+                buildReturn(rturn, last);
 
             } else if (llvm::succ_begin(&block) != llvm::succ_end(&block)) {
 #ifndef NDEBUG
@@ -227,79 +229,72 @@ struct GB {
         }
     }
 
-    void buildBranch(const llvm::BranchInst *inst, const llvm::BasicBlock &b) {
+    void buildBranch(const llvm::BranchInst *inst, VRLocation &last) {
         if (inst->isUnconditional()) {
-            VRBBlock vrblock = codeGraph.getVRBBlock(&b);
-            VRBBlock succ = codeGraph.getVRBBlock(inst->getSuccessor(0));
+            assert(fronts.find(inst->getSuccessor(0)) != fronts.end());
+            VRLocation &first = *fronts[inst->getSuccessor(0)];
 
-            vrblock.back().connect(succ.front(), new VRNoop());
+            last.connect(first, new VRNoop());
         } else {
-            // VRLocation& truePadding = codeGraph.insertAfter(&b);
-            // VRLocation& falsePadding = codeGraph.insertAfter(&b);
-
-            VRBBlock vrblock = codeGraph.getVRBBlock(&b);
+            VRLocation &truePadding = codeGraph.newVRLocation();
+            VRLocation &falsePadding = codeGraph.newVRLocation();
 
             auto *condition = inst->getCondition();
-            // vrblock.back().connect(truePadding, new VRAssumeBool(condition,
-            // true)); vrblock.back().connect(falsePadding, new
-            // VRAssumeBool(condition, false));
+            last.connect(truePadding, new VRAssumeBool(condition, true));
+            last.connect(falsePadding, new VRAssumeBool(condition, false));
 
-            VRBBlock &trueSucc = codeGraph.getVRBBlock(inst->getSuccessor(0));
-            VRBBlock &falseSucc = codeGraph.getVRBBlock(inst->getSuccessor(1));
+            assert(fronts.find(inst->getSuccessor(0)) != fronts.end());
+            assert(fronts.find(inst->getSuccessor(1)) != fronts.end());
 
-            // truePadding.connect(trueSucc.front(), new VRNoop());
-            // falsePadding.connect(falseSucc.front(), new VRNoop());
+            VRLocation &firstTrue = *fronts[inst->getSuccessor(0)];
+            VRLocation &firstFalse = *fronts[inst->getSuccessor(1)];
 
-            vrblock.back().connect(trueSucc.front(),
-                                   new VRAssumeBool(condition, true));
-            vrblock.back().connect(falseSucc.front(),
-                                   new VRAssumeBool(condition, false));
+            truePadding.connect(firstTrue, new VRNoop());
+            falsePadding.connect(firstFalse, new VRNoop());
         }
     }
 
-    void buildSwitch(const llvm::SwitchInst *swtch, const llvm::BasicBlock *b,
-                     VRBBlock vrblock) {
+    void buildSwitch(const llvm::SwitchInst *swtch, VRLocation &last) {
         for (auto &it : swtch->cases()) {
-            // VRLocation& padding = codeGraph.insertAfter(b);
+            VRLocation &padding = codeGraph.newVRLocation();
 
-            // vrblock.back().connect(padding, new
-            // VRAssumeEqual(swtch->getCondition(), it.getCaseValue()));
+            last.connect(padding, new VRAssumeEqual(swtch->getCondition(),
+                                                    it.getCaseValue()));
 
-            VRBBlock &succ = codeGraph.getVRBBlock(it.getCaseSuccessor());
+            assert(fronts.find(it.getCaseSuccessor()) != fronts.end());
+            VRLocation &first = *fronts[it.getCaseSuccessor()];
 
-            // padding.connect(succ.front(), new VRNoop());
-
-            vrblock.back().connect(succ.front(),
-                                   new VRAssumeEqual(swtch->getCondition(),
-                                                     it.getCaseValue()));
+            padding.connect(first, new VRNoop());
         }
 
-        VRBBlock &succ = codeGraph.getVRBBlock(swtch->getDefaultDest());
-        vrblock.back().connect(&succ.front(), new VRNoop());
+        assert(fronts.find(swtch->getDefaultDest()) != fronts.end());
+        VRLocation &first = *fronts[swtch->getDefaultDest()];
+        last.connect(first, new VRNoop());
     }
 
-    void buildReturn(const llvm::ReturnInst *inst, VRBBlock vrblock) {
-        vrblock.back().connect(nullptr, new VRInstruction(inst));
+    void buildReturn(const llvm::ReturnInst *inst, VRLocation &last) {
+        last.connect(nullptr, new VRInstruction(inst));
     }
 
     void buildBlock(const llvm::BasicBlock &block) {
-        VRBBlockHandle vrblock = codeGraph.newVRBBlock(&block);
-
         auto it = block.begin();
         const llvm::Instruction *previousInst = &(*it);
-        VRLocation *previousLoc =
-                &codeGraph.newVRLocation(vrblock, previousInst);
+        VRLocation *previousLoc = &codeGraph.newVRLocation(previousInst);
         ++it;
+
+        fronts.emplace(&block, previousLoc);
 
         for (; it != block.end(); ++it) {
             const llvm::Instruction &inst = *it;
-            VRLocation *newLoc = &codeGraph.newVRLocation(vrblock, &inst);
+            VRLocation &newLoc = codeGraph.newVRLocation(&inst);
 
-            previousLoc->connect(*newLoc, new VRInstruction(previousInst));
+            previousLoc->connect(newLoc, new VRInstruction(previousInst));
 
             previousInst = &inst;
-            previousLoc = newLoc;
+            previousLoc = &newLoc;
         }
+
+        backs.emplace(&block, previousLoc);
     }
 };
 
