@@ -504,13 +504,14 @@ void RelationsAnalyzer::checkRelatesInAll(VRLocation &location, V lt,
 }
 
 Relations RelationsAnalyzer::getCommonByPointedTo(
-        V from, const std::vector<const ValueRelations *> &changeRelations,
-        V val, Relations rels) {
-    for (unsigned i = 1; i < changeRelations.size(); ++i) {
-        assert(changeRelations[i]->hasLoad(from));
-        Handle loaded = changeRelations[i]->getPointedTo(from);
+        V from, const std::vector<const VRLocation *> &changeLocations, V val,
+        Relations rels) {
+    for (unsigned i = 1; i < changeLocations.size(); ++i) {
+        const ValueRelations &graph = changeLocations[i]->relations;
+        assert(graph.hasLoad(from));
+        Handle loaded = graph.getPointedTo(from);
 
-        rels &= changeRelations[i]->between(loaded, val);
+        rels &= graph.between(loaded, val);
         if (!rels.any())
             break;
     }
@@ -518,84 +519,101 @@ Relations RelationsAnalyzer::getCommonByPointedTo(
 }
 
 Relations RelationsAnalyzer::getCommonByPointedTo(
-        V from, const std::vector<const ValueRelations *> &changeRelations,
+        V from, const std::vector<const VRLocation *> &changeLocations,
         V firstLoad, V prevVal) {
     Relations result = Relations().eq().addImplied();
-    for (unsigned i = 1; i < changeRelations.size();
+    for (unsigned i = 1; i < changeLocations.size();
          ++i) { // zeroth relations are tree predecessor's
-        Handle loaded = changeRelations[i]->getPointedTo(from);
+        const ValueRelations &graph = changeLocations[i]->relations;
+        Handle loaded = graph.getPointedTo(from);
         if (firstLoad)
-            result &= changeRelations[i]->between(loaded, firstLoad);
+            result &= graph.between(loaded, firstLoad);
         else
-            result &= changeRelations[i]->between(loaded, prevVal);
+            result &= graph.between(loaded, prevVal);
         if (!result.any())
             break; // no common relations
     }
     return result;
 }
 
-std::pair<std::vector<const ValueRelations *>, V>
-RelationsAnalyzer::getChangeRelations(V from, VRLocation &join) {
-    if (!join.isJustLoopJoin() && !join.isJustBranchJoin())
-        return {{}, nullptr};
-    if (join.isJustBranchJoin()) {
-        std::vector<const ValueRelations *> changeLocations;
-        for (unsigned i = 0; i < join.predsSize(); ++i) {
-            auto &relations = join.getPredLocation(i)->relations;
-            if (!relations.hasLoad(from))
-                return {};
-            changeLocations.emplace_back(&relations);
-        }
-        return {changeLocations, nullptr};
+std::vector<const VRLocation *>
+RelationsAnalyzer::getBranchChangeLocations(const VRLocation &join,
+                                            V from) const {
+    std::vector<const VRLocation *> changeLocations;
+    for (unsigned i = 0; i < join.predsSize(); ++i) {
+        auto loc = join.getPredLocation(i);
+        if (!loc->relations.hasLoad(from))
+            return {};
+        changeLocations.emplace_back(loc);
     }
-    assert(join.isJustLoopJoin());
-
-    std::vector<const ValueRelations *> changeRelations = {
-            &join.getTreePredecessor().relations};
+    return changeLocations;
+}
+std::pair<std::vector<const VRLocation *>, V>
+RelationsAnalyzer::getLoopChangeLocations(const VRLocation &join,
+                                          V from) const {
+    std::vector<const VRLocation *> changeLocations = {
+            &join.getTreePredecessor()};
     V firstLoad = nullptr;
-    unsigned forks = 0;
+    bool forkedBeforeLoad = false;
+    bool ambiguousFirstLoad = false;
 
     for (const auto &inloopInst : structure.getInloopValues(join)) {
         VRLocation &targetLoc =
                 *codeGraph.getVRLocation(inloopInst).getSuccLocation(0);
 
+        // if the flow forked before loading anything, then found a load
+        // and joined after that, then the load is ambiguous as other value
+        // may have been loaded on other path
+        if (!firstLoad && targetLoc.succsSize() > 1)
+            forkedBeforeLoad = true;
+
+        if (forkedBeforeLoad && targetLoc.isJustBranchJoin())
+            ambiguousFirstLoad = true;
+
         if (const auto *load = llvm::dyn_cast<llvm::LoadInst>(inloopInst)) {
-            if (load->getPointerOperand() == from && !firstLoad && !forks) {
+            if (load->getPointerOperand() == from && !firstLoad) {
                 firstLoad = load;
             }
         }
 
-        if (targetLoc.succsSize() > 1)
-            ++forks;
-        else if (targetLoc.isJustBranchJoin()) {
-            assert(forks > 0);
-            --forks;
-        }
-
         if (mayOverwrite(inloopInst, from)) {
-            if (!targetLoc.relations.hasLoad(from)) {
+            if (!firstLoad)
+                ambiguousFirstLoad = true;
+
+            if (!targetLoc.relations.hasLoad(from))
                 return {{}, nullptr}; // no merge by load can happen here
-            }
-            changeRelations.emplace_back(&targetLoc.relations);
-            ++forks; // will never get zeroed out now, no first load will be set
+
+            changeLocations.emplace_back(&targetLoc);
         }
     }
-    return {changeRelations, firstLoad};
+    return {changeLocations, ambiguousFirstLoad ? nullptr : firstLoad};
+}
+
+std::pair<std::vector<const VRLocation *>, V>
+RelationsAnalyzer::getChangeLocations(const VRLocation &join, V from) {
+    if (!join.isJustLoopJoin() && !join.isJustBranchJoin())
+        return {{}, nullptr};
+    if (join.isJustBranchJoin()) {
+        return {getBranchChangeLocations(join, from), nullptr};
+    }
+    assert(join.isJustLoopJoin());
+    return getLoopChangeLocations(join, from);
 }
 
 std::pair<RelationsAnalyzer::C, Relations>
 RelationsAnalyzer::getBoundOnPointedToValue(
-        const std::vector<const ValueRelations *> &changeRelations, V from,
+        const std::vector<const VRLocation *> &changeLocations, V from,
         Relation rel) {
     C bound = nullptr;
     Relations current = allRelations;
 
-    for (const ValueRelations *graph : changeRelations) {
-        if (!graph->hasLoad(from))
+    for (const VRLocation *loc : changeLocations) {
+        const ValueRelations &graph = loc->relations;
+        if (!graph.hasLoad(from))
             return {nullptr, current};
 
-        Handle pointedTo = graph->getPointedTo(from);
-        auto valueRels = graph->getBound(pointedTo, rel);
+        Handle pointedTo = graph.getPointedTo(from);
+        auto valueRels = graph.getBound(pointedTo, rel);
 
         if (!valueRels.first)
             return {nullptr, current};
@@ -613,25 +631,26 @@ RelationsAnalyzer::getBoundOnPointedToValue(
 }
 
 void RelationsAnalyzer::relateToFirstLoad(
-        const std::vector<const ValueRelations *> &changeRelations, V from,
+        const std::vector<const VRLocation *> &changeLocations, V from,
         ValueRelations &newGraph, Handle placeholder, V firstLoad) {
-    Handle pointedTo = changeRelations[0]->getPointedTo(from);
+    const ValueRelations &graph = changeLocations[0]->relations;
+    Handle pointedTo = graph.getPointedTo(from);
 
-    for (V prevVal : changeRelations[0]->getEqual(pointedTo)) {
+    for (V prevVal : graph.getEqual(pointedTo)) {
         Relations common =
-                getCommonByPointedTo(from, changeRelations, firstLoad, prevVal);
+                getCommonByPointedTo(from, changeLocations, firstLoad, prevVal);
         if (common.any())
             newGraph.set(placeholder, common, prevVal);
     }
 }
 
 void RelationsAnalyzer::relateBounds(
-        const std::vector<const ValueRelations *> &changeRelations, V from,
+        const std::vector<const VRLocation *> &changeLocations, V from,
         ValueRelations &newGraph, Handle placeholder) {
     auto signedLowerBound =
-            getBoundOnPointedToValue(changeRelations, from, Relation::SGE);
+            getBoundOnPointedToValue(changeLocations, from, Relation::SGE);
     auto unsignedLowerBound = getBoundOnPointedToValue(
-            changeRelations, from,
+            changeLocations, from,
             Relation::UGE); // TODO collect upper bound too
 
     if (signedLowerBound.first)
@@ -644,9 +663,9 @@ void RelationsAnalyzer::relateBounds(
 }
 
 void RelationsAnalyzer::relateValues(
-        const std::vector<const ValueRelations *> &changeRelations, V from,
+        const std::vector<const VRLocation *> &changeLocations, V from,
         ValueRelations &newGraph, Handle placeholder) {
-    const ValueRelations &predGraph = *changeRelations[0];
+    const ValueRelations &predGraph = changeLocations[0]->relations;
     Handle pointedTo = predGraph.getPointedTo(from);
 
     for (auto pair : predGraph.getRelated(pointedTo, comparative)) {
@@ -659,7 +678,7 @@ void RelationsAnalyzer::relateValues(
             continue;
 
         for (V related : predGraph.getEqual(relatedH)) {
-            Relations common = getCommonByPointedTo(from, changeRelations,
+            Relations common = getCommonByPointedTo(from, changeLocations,
                                                     related, relations);
             if (common.any())
                 newGraph.set(placeholder, common, related);
@@ -706,10 +725,10 @@ void RelationsAnalyzer::mergeRelationsByPointedTo(VRLocation &loc) {
     for (auto it = predGraph.begin_buckets(Relations().pt());
          it != predGraph.end_buckets(); ++it) {
         for (V from : predGraph.getEqual(it->from())) {
-            std::vector<const ValueRelations *> changeLocations;
+            std::vector<const VRLocation *> changeLocations;
             V firstLoad;
             std::tie(changeLocations, firstLoad) =
-                    getChangeRelations(from, loc);
+                    getChangeLocations(loc, from);
 
             if (changeLocations.empty())
                 continue;
