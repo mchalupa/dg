@@ -137,12 +137,11 @@ ValueRelations::C ValueRelations::getAnyConst(Handle h) const {
     return nullptr;
 }
 
-std::vector<ValueRelations::V> ValueRelations::getEqual(Handle h) const {
-    std::set<V> resultSet = bucketToVals.find(h)->second;
-    return {resultSet.begin(), resultSet.end()};
+const VectorSet<ValueRelations::V> &ValueRelations::getEqual(Handle h) const {
+    return bucketToVals.find(h)->second;
 }
 
-std::vector<ValueRelations::V> ValueRelations::getEqual(V val) const {
+VectorSet<ValueRelations::V> ValueRelations::getEqual(V val) const {
     HandlePtr mH = maybeGet(val);
     if (!mH)
         return {val};
@@ -223,8 +222,7 @@ ValueRelations::HandlePtr ValueRelations::getHandleByPtr(Handle h) const {
     return &h.getRelated(Relations::PT);
 }
 
-const std::vector<ValueRelations::V>
-ValueRelations::getValsByPtr(V from) const {
+VectorSet<ValueRelations::V> ValueRelations::getValsByPtr(V from) const {
     HandlePtr mH = maybeGet(from);
     if (!mH)
         return {};
@@ -239,10 +237,10 @@ std::set<std::pair<std::vector<ValueRelations::V>,
 ValueRelations::getAllLoads() const {
     std::set<std::pair<std::vector<V>, std::vector<V>>> result;
     for (auto it = begin_buckets(Relations().pt()); it != end_buckets(); ++it) {
-        std::set<V> fromValsSet = bucketToVals.find(it->from())->second;
+        VectorSet<V> fromValsSet = bucketToVals.find(it->from())->second;
         std::vector<V> fromVals(fromValsSet.begin(), fromValsSet.end());
 
-        std::set<V> toValsSet = bucketToVals.find(it->to())->second;
+        VectorSet<V> toValsSet = bucketToVals.find(it->to())->second;
         std::vector<V> toVals(toValsSet.begin(), toValsSet.end());
 
         result.emplace(std::move(fromVals), std::move(toVals));
@@ -291,7 +289,7 @@ bool ValueRelations::holdsAnyRelations() const {
 
 ValueRelations::Handle
 ValueRelations::getCorresponding(const ValueRelations &other, Handle otherH,
-                                 const std::vector<V> &otherEqual) {
+                                 const VectorSet<V> &otherEqual) {
     if (otherEqual.empty()) { // other is a placeholder bucket, therefore it is
                               // pointed to from other bucket
         assert(otherH.hasRelation(Relations::PF));
@@ -316,7 +314,7 @@ ValueRelations::getCorresponding(const ValueRelations &other, Handle otherH,
             assert(mH);
         }
     }
-    return mH ? *mH : add(otherEqual[0], graph.getNewBucket()).first.get();
+    return mH ? *mH : add(otherEqual.any(), graph.getNewBucket()).first.get();
 }
 
 ValueRelations::Handle
@@ -326,7 +324,7 @@ ValueRelations::getCorresponding(const ValueRelations &other, Handle otherH) {
 
 ValueRelations::Handle ValueRelations::getAndMerge(const ValueRelations &other,
                                                    Handle otherH) {
-    const std::vector<V> &otherEqual = other.getEqual(otherH);
+    const VectorSet<V> &otherEqual = other.getEqual(otherH);
     Handle thisH = getCorresponding(other, otherH, otherEqual);
 
     for (V val : otherEqual)
@@ -354,7 +352,7 @@ bool ValueRelations::merge(const ValueRelations &other, Relations relations) {
     return noConflict;
 }
 
-void ValueRelations::add(V val, Handle h, std::set<V> &vals) {
+void ValueRelations::add(V val, Handle h, VectorSet<V> &vals) {
     ValToBucket::iterator it = valToBucket.lower_bound(val);
     // val already bound to a handle
     if (it != valToBucket.end() && !(valToBucket.key_comp()(val, it->first))) {
@@ -407,9 +405,9 @@ std::pair<ValueRelations::BRef, bool> ValueRelations::add(V val, Handle h) {
 }
 
 void ValueRelations::areMerged(Handle to, Handle from) {
-    std::set<V> &toVals = bucketToVals.find(to)->second;
+    VectorSet<V> &toVals = bucketToVals.find(to)->second;
     assert(bucketToVals.find(from) != bucketToVals.end());
-    const std::set<V> fromVals = bucketToVals.find(from)->second;
+    const VectorSet<V> fromVals = bucketToVals.find(from)->second;
 
     for (V val : fromVals)
         add(val, to, toVals);
@@ -436,7 +434,7 @@ void dump(std::ostream &out, ValueRelations::Handle h,
           const ValueRelations::BucketToVals &map) {
     auto found = map.find(h);
     assert(found != map.end());
-    const std::set<ValueRelations::V> &vals = found->second;
+    const VectorSet<ValueRelations::V> &vals = found->second;
 
     out << "{{ ";
     if (vals.empty())

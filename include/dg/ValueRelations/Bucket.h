@@ -88,6 +88,11 @@ class VectorSet {
     iterator rend() { return vec.rend(); }
     const_reverse_iterator rbegin() const { return vec.rbegin(); }
     const_reverse_iterator rend() const { return vec.rend(); }
+
+    T any() const {
+        assert(!empty());
+        return vec[0];
+    }
 };
 
 struct Bucket {
