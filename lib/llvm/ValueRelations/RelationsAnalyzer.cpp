@@ -787,17 +787,20 @@ bool RelationsAnalyzer::passFunction(const llvm::Function &function,
     for (auto it = codeGraph.lazy_dfs_begin(function);
          it != codeGraph.lazy_dfs_end(); ++it) {
         VRLocation &location = *it;
-        if (print) {
+        bool cond = location.id == 91;
+        if (print && cond) {
             std::cerr << "LOCATION " << location.id << std::endl;
             for (VREdge *predEdge : location.predecessors) {
                 std::cerr << predEdge->op->toStr() << std::endl;
             }
         }
-        if (print && location.id == 9)
-            std::cerr << "pred\n"
-                      << location.getPredLocation(0)->relations << "\n"
-                      << location.getPredLocation(1)->relations << "before\n"
-                      << location.relations << "\n";
+        if (print && cond) {
+            for (unsigned i = 0; i < location.predsSize(); ++i) {
+                std::cerr << "pred" << i << "\n";
+                std::cerr << location.getPredLocation(i)->relations << "\n";
+            }
+            std::cerr << "before\n" << location.relations << "\n";
+        }
 
         if (location.predsSize() > 1) {
             mergeRelations(location);
@@ -808,8 +811,10 @@ bool RelationsAnalyzer::passFunction(const llvm::Function &function,
         } // else no predecessors => nothing to be passed
 
         bool locationChanged = location.relations.unsetChanged();
-        if (print && locationChanged)
+        if (print && cond /*&& locationChanged*/) {
             std::cerr << "after\n" << location.relations;
+            return false;
+        }
         changed |= locationChanged;
     }
     return changed;
