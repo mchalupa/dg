@@ -769,19 +769,17 @@ StructureAnalyzer::getCallRelationsFor(const llvm::Instruction *inst) const {
 }
 
 void StructureAnalyzer::addPrecondition(const llvm::Function *func,
-                                        const llvm::Value *lt,
+                                        const llvm::Argument *lt,
                                         Relations::Type rel,
                                         const llvm::Value *rt) {
-    Precondition p{lt, rel, rt};
-    VectorSet<Precondition> vec{std::move(p)};
-    preconditionsMap.emplace(func, std::move(vec));
+    preconditionsMap[func].emplace_back(lt, rel, rt);
 }
 
 bool StructureAnalyzer::hasPreconditions(const llvm::Function *func) const {
     return preconditionsMap.find(func) != preconditionsMap.end();
 }
 
-const VectorSet<Precondition> &
+const std::vector<Precondition> &
 StructureAnalyzer::getPreconditionsFor(const llvm::Function *func) const {
     assert(preconditionsMap.find(func) != preconditionsMap.end());
     return preconditionsMap.find(func)->second;

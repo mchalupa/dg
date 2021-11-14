@@ -691,9 +691,9 @@ V getCompared(const llvm::ICmpInst *icmp, V from) {
 const llvm::ICmpInst *RelationsAnalyzer::getEQICmp(const VRLocation &join) {
     if (join.loopEnds.size() != 1 || !join.loopEnds[0]->op->isAssumeBool())
         return nullptr;
-    
+
     const auto *assume =
-        static_cast<VRAssumeBool *>(join.loopEnds[0]->op.get());
+            static_cast<VRAssumeBool *>(join.loopEnds[0]->op.get());
     V val = assume->getValue();
 
     if (!llvm::isa<llvm::ICmpInst>(val))
@@ -704,22 +704,21 @@ const llvm::ICmpInst *RelationsAnalyzer::getEQICmp(const VRLocation &join) {
 
     if (rel != Relations::EQ)
         return nullptr;
-    
+
     return icmp;
 }
 
-V getArgument(const VectorSet<V>& vals) {
+const llvm::Argument *getArgument(const VectorSet<V> &vals) {
     for (const auto *val : vals) {
-        if (llvm::isa<llvm::Argument>(val))
-            return val;
+        if (const auto *arg = llvm::dyn_cast<llvm::Argument>(val))
+            return arg;
     }
     return nullptr;
 }
 
 void RelationsAnalyzer::inferFromNonEquality(VRLocation &join, V from,
-                                             const VectorSet<V>& initial, Shift s,
-                                             Handle placeholder) {
-
+                                             const VectorSet<V> &initial,
+                                             Shift s, Handle placeholder) {
     const auto *icmp = getEQICmp(join);
     if (!icmp)
         return;
@@ -729,19 +728,21 @@ void RelationsAnalyzer::inferFromNonEquality(VRLocation &join, V from,
         return;
 
     assert(!initial.empty());
+    const llvm::Argument *arg = getArgument(initial);
+    if (!arg)
+        return;
+
+    const llvm::Function *func = icmp->getFunction();
+
     if (join.relations.are(*initial.begin(),
                            s == Shift::INC ? Relations::SLE : Relations::SGE,
                            compared)) {
         return;
     }
 
-    V arg = getArgument(initial);
-    if (! arg)
-        return;
-
-    structure.addPrecondition(icmp->getFunction(), arg,
-                              s == Shift::INC ? Relations::SLE : Relations::SGE,
-                              compared);
+    structure.addPrecondition(
+            func, arg, s == Shift::INC ? Relations::SLE : Relations::SGE,
+            compared);
 
     join.relations.set(placeholder,
                        s == Shift::INC ? Relations::SLE : Relations::SGE,
@@ -751,7 +752,7 @@ void RelationsAnalyzer::inferFromNonEquality(VRLocation &join, V from,
 void RelationsAnalyzer::inferShiftInLoop(
         const std::vector<const VRLocation *> &changeLocations, V from,
         ValueRelations &newGraph, Handle placeholder) {
-    const ValueRelations& predGraph = changeLocations[0]->relations;
+    const ValueRelations &predGraph = changeLocations[0]->relations;
     assert(predGraph.hasLoad(from));
 
     const auto &initial = predGraph.getEqual(predGraph.getPointedTo(from));
