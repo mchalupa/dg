@@ -1,146 +1,37 @@
 #ifndef DG_LLVM_VALUE_RELATIONS_GRAPH_BUILDER_HPP_
 #define DG_LLVM_VALUE_RELATIONS_GRAPH_BUILDER_HPP_
 
-#include "llvm/IR/Constants.h"
-#include <llvm/IR/CFG.h>
-#include <llvm/IR/Instructions.h>
-#include <llvm/IR/Module.h>
-
 #include "GraphElements.h"
 
-#ifndef NDEBUG
-#include "getValName.h"
-#endif
+#include <llvm/IR/Module.h>
 
 namespace dg {
 namespace vr {
 
-struct GraphBuilder {
+class GraphBuilder {
     const llvm::Module &module;
     VRCodeGraph &codeGraph;
 
-    std::map<const llvm::BasicBlock *, VRLocation *> fronts;
-    std::map<const llvm::BasicBlock *, VRLocation *> backs;
+    std::map<const llvm::BasicBlock*, VRLocation*> fronts;
+    std::map<const llvm::BasicBlock*, VRLocation*> backs;
 
+    void buildBlocks(const llvm::Function &function);
+
+    void buildTerminators(const llvm::Function &function);
+
+    void buildBranch(const llvm::BranchInst *inst, VRLocation &last);
+
+    void buildSwitch(const llvm::SwitchInst *swtch, VRLocation &last);
+
+    void buildReturn(const llvm::ReturnInst *inst, VRLocation &last);
+
+    void buildBlock(const llvm::BasicBlock &block);
+
+  public:
     GraphBuilder(const llvm::Module &m, VRCodeGraph &c)
             : module(m), codeGraph(c) {}
 
-    void build() {
-        for (const llvm::Function &function : module) {
-            if (function.isDeclaration())
-                continue;
-
-            buildBlocks(function);
-            buildTerminators(function);
-        }
-    }
-
-    void buildBlocks(const llvm::Function &function) {
-        for (const llvm::BasicBlock &block : function) {
-            assert(block.size() != 0);
-            buildBlock(block);
-        }
-
-        codeGraph.setEntryLocation(
-                &function,
-                codeGraph.getVRLocation(&function.getEntryBlock().front()));
-    }
-
-    void buildTerminators(const llvm::Function &function) {
-        for (const llvm::BasicBlock &block : function) {
-            assert(backs.find(&block) != backs.end());
-            VRLocation &last = *backs[&block];
-
-            const llvm::Instruction *terminator = block.getTerminator();
-            if (auto branch = llvm::dyn_cast<llvm::BranchInst>(terminator)) {
-                buildBranch(branch, last);
-
-            } else if (auto swtch =
-                               llvm::dyn_cast<llvm::SwitchInst>(terminator)) {
-                buildSwitch(swtch, last);
-
-            } else if (auto rturn =
-                               llvm::dyn_cast<llvm::ReturnInst>(terminator)) {
-                buildReturn(rturn, last);
-
-            } else if (llvm::succ_begin(&block) != llvm::succ_end(&block)) {
-#ifndef NDEBUG
-                std::cerr << "Unhandled  terminator: "
-                          << dg::debug::getValName(terminator) << std::endl;
-                llvm::errs() << "Unhandled terminator: " << *terminator << "\n";
-#endif
-                abort();
-            }
-        }
-    }
-
-    void buildBranch(const llvm::BranchInst *inst, VRLocation &last) {
-        if (inst->isUnconditional()) {
-            assert(fronts.find(inst->getSuccessor(0)) != fronts.end());
-            VRLocation &first = *fronts[inst->getSuccessor(0)];
-
-            last.connect(first, new VRNoop());
-        } else {
-            VRLocation &truePadding = codeGraph.newVRLocation();
-            VRLocation &falsePadding = codeGraph.newVRLocation();
-
-            auto *condition = inst->getCondition();
-            last.connect(truePadding, new VRAssumeBool(condition, true));
-            last.connect(falsePadding, new VRAssumeBool(condition, false));
-
-            assert(fronts.find(inst->getSuccessor(0)) != fronts.end());
-            assert(fronts.find(inst->getSuccessor(1)) != fronts.end());
-
-            VRLocation &firstTrue = *fronts[inst->getSuccessor(0)];
-            VRLocation &firstFalse = *fronts[inst->getSuccessor(1)];
-
-            truePadding.connect(firstTrue, new VRNoop());
-            falsePadding.connect(firstFalse, new VRNoop());
-        }
-    }
-
-    void buildSwitch(const llvm::SwitchInst *swtch, VRLocation &last) {
-        for (auto &it : swtch->cases()) {
-            VRLocation &padding = codeGraph.newVRLocation();
-
-            last.connect(padding, new VRAssumeEqual(swtch->getCondition(),
-                                                    it.getCaseValue()));
-
-            assert(fronts.find(it.getCaseSuccessor()) != fronts.end());
-            VRLocation &first = *fronts[it.getCaseSuccessor()];
-
-            padding.connect(first, new VRNoop());
-        }
-
-        assert(fronts.find(swtch->getDefaultDest()) != fronts.end());
-        VRLocation &first = *fronts[swtch->getDefaultDest()];
-        last.connect(first, new VRNoop());
-    }
-
-    void buildReturn(const llvm::ReturnInst *inst, VRLocation &last) {
-        last.connect(nullptr, new VRInstruction(inst));
-    }
-
-    void buildBlock(const llvm::BasicBlock &block) {
-        auto it = block.begin();
-        const llvm::Instruction *previousInst = &(*it);
-        VRLocation *previousLoc = &codeGraph.newVRLocation(previousInst);
-        ++it;
-
-        fronts.emplace(&block, previousLoc);
-
-        for (; it != block.end(); ++it) {
-            const llvm::Instruction &inst = *it;
-            VRLocation &newLoc = codeGraph.newVRLocation(&inst);
-
-            previousLoc->connect(newLoc, new VRInstruction(previousInst));
-
-            previousInst = &inst;
-            previousLoc = &newLoc;
-        }
-
-        backs.emplace(&block, previousLoc);
-    }
+    void build();
 };
 
 } // namespace vr
