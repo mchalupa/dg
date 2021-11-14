@@ -568,26 +568,6 @@ class VRCodeGraph {
     }
 };
 
-struct VRBBlock {
-    std::list<std::unique_ptr<VRLocation>> locations;
-
-    void prepend(VRLocation *loc) { locations.emplace(locations.begin(), loc); }
-
-    void append(VRLocation *loc) { locations.emplace_back(loc); }
-
-    VRLocation *last() { return locations.back().get(); }
-    VRLocation *first() { return locations.front().get(); }
-    const VRLocation *last() const { return locations.back().get(); }
-    const VRLocation *first() const { return locations.front().get(); }
-
-    auto begin() -> decltype(locations.begin()) { return locations.begin(); }
-    auto end() -> decltype(locations.end()) { return locations.end(); }
-    auto begin() const -> decltype(locations.begin()) {
-        return locations.begin();
-    }
-    auto end() const -> decltype(locations.end()) { return locations.end(); }
-};
-
 } // namespace vr
 } // namespace dg
 
