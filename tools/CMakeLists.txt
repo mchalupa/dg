@@ -119,7 +119,9 @@ endif (HAVE_SVF)
                                 PRIVATE dgllvmslicer
 				PRIVATE ${llvm_irreader})
 
-	add_executable(llvm-vr-dump llvm-vr-dump.cpp)
+	add_executable(llvm-vr-dump llvm-vr-dump.cpp
+								${CMAKE_SOURCE_DIR}/include/dg/llvm/ValueRelations/Relations.cpp
+								${CMAKE_SOURCE_DIR}/include/dg/llvm/ValueRelations/VR.cpp)
 	target_link_libraries(llvm-vr-dump
 				# dynamic LLVM
 				PRIVATE ${llvm}
