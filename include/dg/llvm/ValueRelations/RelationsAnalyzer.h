@@ -99,17 +99,16 @@ class RelationsAnalyzer {
     bool processPhi(ValueRelations &newGraph, VRAssumeBool *assume) const;
 
     // *********************** merge helpers **************************** //
-    Relations relationsInAllPreds(const VRLocation &location, V lt,
-                                  Relations known, V rt) const;
+    Relations getCommon(const VRLocation &location, V lt, Relations known,
+                        V rt) const;
     void checkRelatesInAll(VRLocation &location, V lt, Relations known, V rt,
                            std::set<V> &setEqual);
-    bool relatesByLoadInAll(
-            const std::vector<const ValueRelations *> &changeRelations,
-            V related, V from, Relation rel) const;
-    Relations
-    getCommon(V from,
-              const std::vector<const ValueRelations *> &changeRelations,
-              V firstLoad, V prevVal);
+    Relations getCommonByPointedTo(
+            V from, const std::vector<const ValueRelations *> &changeRelations,
+            V val, Relations rels);
+    Relations getCommonByPointedTo(
+            V from, const std::vector<const ValueRelations *> &changeRelations,
+            V firstLoad, V prevVal);
     std::pair<std::vector<const ValueRelations *>, V>
     getChangeLocations(V from, VRLocation &join);
     std::pair<C, Relations> getBoundOnPointedToValue(
@@ -127,7 +126,7 @@ class RelationsAnalyzer {
 
     // **************************** merge ******************************* //
     void mergeRelations(VRLocation &location);
-    void mergeRelationsByLoads(VRLocation &location);
+    void mergeRelationsByPointedTo(VRLocation &location);
 
     // ***************************** edge ******************************* //
     void processInstruction(ValueRelations &graph, I inst);
