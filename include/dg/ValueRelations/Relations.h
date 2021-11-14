@@ -74,6 +74,9 @@ const Relations allRelations(~0);
 const Relations comparative(1 << Relations::EQ | 1 << Relations::NE |
                             1 << Relations::LT | 1 << Relations::LE |
                             1 << Relations::GT | 1 << Relations::GE);
+const Relations restricted(1 << Relations::EQ | 1 << Relations::NE |
+                           1 << Relations::LT | 1 << Relations::LE |
+                           1 << Relations::PT);
 
 #ifndef NDEBUG
 std::ostream &operator<<(std::ostream &out, Relations::Type r);

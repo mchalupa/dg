@@ -159,7 +159,7 @@ std::vector<ValueRelations::V> ValueRelations::getEqual(V val) const {
 
 std::vector<ValueRelations::V> ValueRelations::getAllRelated(V val) const {
     std::vector<ValueRelations::V> result;
-    std::transform(begin_related(val), end_related(val),
+    std::transform(begin_related(val, allRelations), end_related(val),
                    std::back_inserter(result),
                    [](const auto &pair) { return pair.first; });
     return result;
