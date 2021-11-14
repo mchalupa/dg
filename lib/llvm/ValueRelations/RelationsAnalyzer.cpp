@@ -1127,13 +1127,9 @@ bool RelationsAnalyzer::passFunction(const llvm::Function &function,
         const bool cond = location.id == 91;
         if (print && cond) {
             std::cerr << "LOCATION " << location.id << "\n";
-            for (VREdge *predEdge : location.predecessors) {
-                std::cerr << predEdge->op->toStr() << "\n";
-            }
-        }
-        if (print && cond) {
             for (unsigned i = 0; i < location.predsSize(); ++i) {
-                std::cerr << "pred" << i << "\n";
+                std::cerr << "pred" << i << " "
+                          << location.getPredEdge(i)->op->toStr() << "\n";
                 std::cerr << location.getPredLocation(i)->relations << "\n";
             }
             std::cerr << "before\n" << location.relations << "\n";
@@ -1151,9 +1147,9 @@ bool RelationsAnalyzer::passFunction(const llvm::Function &function,
 
         bool locationChanged = location.relations.unsetChanged();
 #ifndef NDEBUG
-        if (print && cond /*&& locationChanged*/) {
+        if (print && cond && locationChanged) {
             std::cerr << "after\n" << location.relations;
-            return false;
+            // return false;
         }
 #endif
         changed |= locationChanged;
@@ -1171,7 +1167,7 @@ unsigned RelationsAnalyzer::analyze(unsigned maxPass) {
         bool changed = true;
         unsigned passNum = 0;
         while (changed && passNum < maxPass) {
-            changed = passFunction(function, false); // passNum+1==maxPass);
+            changed = passFunction(function, false); // passNum + 1 == maxPass);
             ++passNum;
         }
 

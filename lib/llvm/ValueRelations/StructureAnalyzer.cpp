@@ -790,5 +790,21 @@ StructureAnalyzer::getBorderArgumentFor(const llvm::Function *func,
     return nullptr;
 }
 
+#ifndef NDEBUG
+void StructureAnalyzer::dumpBorderValues(std::ostream &out) const {
+    out << "[ \n";
+    for (auto &foo : borderValues) {
+        out << "    " << foo.first->getName().str() << ": ";
+        for (auto &bv : foo.second)
+            out << "("
+                << "id " << bv.id << ", "
+                << "from " << debug::getValName(bv.from) << ", "
+                << "stored " << debug::getValName(bv.stored)
+                << "), ";
+    }
+    out << "\n]\n";
+}
+#endif
+
 } // namespace vr
 } // namespace dg

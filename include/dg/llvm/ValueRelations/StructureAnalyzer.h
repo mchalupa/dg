@@ -147,19 +147,7 @@ class StructureAnalyzer {
                                                size_t id) const;
 
 #ifndef NDEBUG
-    void dumpBorderValues(std::ostream &out = std::cerr) const {
-        out << "[ \n";
-        for (auto &foo : borderValues) {
-            out << "    " << foo.first->getName().str() << ": ";
-            for (auto &bv : foo.second)
-                out << "("
-                    << "id " << bv.id << ", "
-                    << "from " << debug::getValName(bv.from) << ", "
-                    << "stored " << debug::getValName(bv.stored)
-                    << "), ";
-        }
-        out << "\n]\n";
-    }
+    void dumpBorderValues(std::ostream &out = std::cerr) const;
 #endif
 };
 
