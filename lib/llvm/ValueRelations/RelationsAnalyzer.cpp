@@ -128,6 +128,142 @@ RelationsAnalyzer::instructionInvalidatesFromGraph(const ValueRelations &graph,
     return allInvalid;
 }
 
+bool RelationsAnalyzer::isSafe(I inst) const {
+    if (!inst->mayWriteToMemory() && !inst->mayHaveSideEffects())
+        return true;
+
+    if (auto intrinsic = llvm::dyn_cast<llvm::IntrinsicInst>(inst)) {
+        if (isIgnorableIntrinsic(intrinsic->getIntrinsicID())) {
+            return true;
+        }
+    }
+
+    if (auto call = llvm::dyn_cast<llvm::CallInst>(inst)) {
+        auto function = call->getCalledFunction();
+        if (function && safeFunctions.find(function->getName().str()) !=
+                                safeFunctions.end())
+            return true;
+    }
+    return false;
+}
+
+bool RelationsAnalyzer::isDangerous(I inst) const {
+    auto store = llvm::dyn_cast<llvm::StoreInst>(inst);
+    if (!store) // most probably CallInst
+        // unable to presume anything about such instruction
+        return true;
+
+    // if store writes to a fix location, it cannot be easily said which
+    // values it affects
+    if (llvm::isa<llvm::Constant>(store->getPointerOperand()))
+        return true;
+
+    return false;
+}
+
+bool RelationsAnalyzer::mayHaveAlias(const ValueRelations &graph,
+                                     Handle h) const {
+    if (!hasKnownOrigin(graph, h))
+        return true;
+
+    for (V val : graph.getEqual(h)) {
+        // if value is not pointer, we don't care whether there can be other
+        // name for same value
+        if (!val->getType()->isPointerTy())
+            continue;
+
+        for (const llvm::User *user : val->users()) {
+            // if value is stored, it can be accessed
+            if (llvm::isa<llvm::StoreInst>(user)) {
+                if (user->getOperand(0) == val)
+                    return true;
+
+            } else if (llvm::isa<llvm::CastInst>(user)) {
+                if (!graph.contains(user) ||
+                    mayHaveAlias(graph, graph.getHandle(user)))
+                    return true;
+
+            } else if (auto gep =
+                               llvm::dyn_cast<llvm::GetElementPtrInst>(user)) {
+                assert(gep->getPointerOperand() == val);
+                return true; // TODO possible to collect here
+
+            } else if (auto intrinsic =
+                               llvm::dyn_cast<llvm::IntrinsicInst>(user)) {
+                if (!isIgnorableIntrinsic(intrinsic->getIntrinsicID()) &&
+                    intrinsic->mayWriteToMemory())
+                    return true;
+
+            } else if (auto inst = llvm::dyn_cast<llvm::Instruction>(user)) {
+                if (inst->mayWriteToMemory())
+                    return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool RelationsAnalyzer::hasKnownOrigin(const ValueRelations &graph,
+                                       Handle h) const {
+    for (V val : graph.getEqual(h)) {
+        if (llvm::isa<llvm::AllocaInst>(val))
+            return true;
+    }
+    return false;
+}
+
+std::vector<ValueRelations::BRef>
+RelationsAnalyzer::instructionKeeps(I inst) const {
+    const ValueRelations &graph = codeGraph.getVRLocation(inst).relations;
+
+    std::vector<HandleRef> toKeep;
+    if (isSafe(inst)) {
+        for (auto it = graph.begin_buckets(Relations().pt());
+             it != graph.end_buckets(); ++it) {
+            toKeep.emplace_back(it->from());
+        }
+        return toKeep;
+    }
+
+    if (isDangerous(inst))
+        return {};
+
+    auto store = llvm::cast<llvm::StoreInst>(inst);
+    V memoryPtr = store->getPointerOperand();
+
+    if (!graph.contains(
+                memoryPtr)) { // memory is untracked by graph => !hasKnownOrigin
+        for (auto it = graph.begin_buckets(Relations().pt());
+             it != graph.end_buckets(); ++it) {
+            if (!mayHaveAlias(graph, it->from()))
+                toKeep.emplace_back(it->from());
+        }
+        return toKeep;
+    }
+
+    Handle h = graph.getHandle(memoryPtr);
+    bool alias = mayHaveAlias(graph, h);
+    bool origin = hasKnownOrigin(graph, h);
+
+    for (auto it = graph.begin_buckets(Relations().pt());
+         it != graph.end_buckets(); ++it) {
+        if (it->from() == h)
+            continue;
+
+        if (!origin) {
+            assert(alias);
+            if (!mayHaveAlias(graph, it->from()))
+                toKeep.emplace_back(it->from());
+        } else if (alias) {
+            assert(origin);
+            if (hasKnownOrigin(graph, it->from()))
+                toKeep.emplace_back(it->from());
+        }
+        toKeep.emplace_back(it->from());
+    }
+    return toKeep;
+}
+
 // ************************ points to helpers ************************* //
 bool RelationsAnalyzer::mayHaveAlias(const ValueRelations &graph, V val) const {
     for (auto eqval : graph.getEqual(val))
@@ -980,29 +1116,16 @@ void RelationsAnalyzer::processInstruction(ValueRelations &graph, I inst) {
 
 void RelationsAnalyzer::rememberValidated(const ValueRelations &prev,
                                           ValueRelations &graph, I inst) const {
-    std::set<V> invalidated = instructionInvalidatesFromGraph(prev, inst);
-    for (auto it = graph.begin_buckets(Relations().pt());
-         it != graph.end_buckets(); ++it) {
-        for (V from : graph.getEqual(it->from())) {
-            assert(!graph.getEqual(it->to()).empty() ||
-                   invalidated.find(from) == invalidated.end());
-        }
-    }
+    assert(&prev == &codeGraph.getVRLocation(inst).relations);
+    auto toKeep = instructionKeeps(inst);
 
     for (auto it = prev.begin_buckets(Relations().pt());
          it != prev.end_buckets(); ++it) {
-        bool validPair = true;
-        for (V from : prev.getEqual(it->from())) {
-            if (invalidated.find(from) != invalidated.end()) {
-                validPair = false;
-                break;
-            }
-        }
-        if (!validPair)
-            continue;
-        for (V from : prev.getEqual(it->from())) {
-            for (V to : prev.getEqual(it->to())) {
-                graph.setLoad(from, to);
+        if (std::find(toKeep.begin(), toKeep.end(), it->from()) !=
+            toKeep.end()) {
+            for (V from : prev.getEqual(it->from())) {
+                for (V to : prev.getEqual(it->to()))
+                    graph.setLoad(from, to);
             }
         }
     }

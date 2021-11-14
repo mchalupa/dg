@@ -28,6 +28,7 @@ namespace vr {
 struct ValueRelations {
     using RelGraph = RelationsGraph<ValueRelations>;
     using Handle = const Bucket &;
+    using HandlePtr = const Bucket *;
     using BRef = std::reference_wrapper<const Bucket>;
     using RelationsMap = RelGraph::RelationsMap;
     using V = const llvm::Value *;
@@ -38,7 +39,6 @@ struct ValueRelations {
 
   private:
     using BareC = llvm::ConstantInt;
-    using HandlePtr = const Bucket *;
 
     template <typename T>
     friend class RelationsGraph;
@@ -271,6 +271,9 @@ struct ValueRelations {
     using rel_iterator = RelatedValueIterator;
     using plain_iterator = PlainValueIterator;
 
+    // ****************************** get ********************************* //
+    Handle getHandle(V val) const;
+
     // ****************************** set ********************************* //
     template <typename X, typename Y>
     void set(const X &lt, Relations::Type rel, const Y &rt) {
@@ -374,6 +377,10 @@ struct ValueRelations {
     template <typename X>
     bool hasEqual(const X &val) const {
         return has(val, Relations().eq());
+    }
+    template <typename X>
+    bool contains(const X &val) const {
+        return maybeGet(val);
     }
 
     // *************************** iterators ****************************** //

@@ -23,6 +23,7 @@ namespace vr {
 
 class RelationsAnalyzer {
     using Handle = ValueRelations::Handle;
+    using HandleRef = ValueRelations::BRef;
     using Relation = Relations::Type;
     using V = ValueRelations::V;
     using C = ValueRelations::C;
@@ -49,6 +50,12 @@ class RelationsAnalyzer {
     // by the instruction
     std::set<V> instructionInvalidatesFromGraph(const ValueRelations &graph,
                                                 I inst) const;
+
+    bool isSafe(I inst) const;
+    bool isDangerous(I inst) const;
+    bool mayHaveAlias(const ValueRelations &graph, Handle h) const;
+    bool hasKnownOrigin(const ValueRelations &graph, Handle h) const;
+    std::vector<HandleRef> instructionKeeps(I inst) const;
 
     // ************************ points to helpers ************************* //
     bool mayHaveAlias(const ValueRelations &graph, V val) const;
