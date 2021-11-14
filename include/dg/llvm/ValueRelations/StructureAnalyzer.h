@@ -41,6 +41,7 @@ class StructureAnalyzer {
 
     std::map<const llvm::Function *, std::vector<Precondition>>
             preconditionsMap;
+    std::map<const llvm::Function *, std::vector<BorderValue>> borderValues;
 
     void categorizeEdges();
 
@@ -132,6 +133,14 @@ class StructureAnalyzer {
 
     const std::vector<Precondition> &
     getPreconditionsFor(const llvm::Function *func) const;
+
+    void addBorderValue(const llvm::Function *func, const llvm::Argument *from,
+                        const ValueRelations::Handle &h);
+
+    bool hasBorderValues(const llvm::Function *func) const;
+
+    const std::vector<BorderValue> &
+    getBorderValuesFor(const llvm::Function *func) const;
 };
 
 } // namespace vr

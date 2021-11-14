@@ -785,5 +785,21 @@ StructureAnalyzer::getPreconditionsFor(const llvm::Function *func) const {
     return preconditionsMap.find(func)->second;
 }
 
+void StructureAnalyzer::addBorderValue(const llvm::Function *func,
+                                       const llvm::Argument *from,
+                                       const ValueRelations::Handle &h) {
+    borderValues[func].emplace_back(from, h);
+}
+
+bool StructureAnalyzer::hasBorderValues(const llvm::Function *func) const {
+    return borderValues.find(func) != borderValues.end();
+}
+
+const std::vector<BorderValue> &
+StructureAnalyzer::getBorderValuesFor(const llvm::Function *func) const {
+    assert(hasBorderValues(func));
+    return borderValues.find(func)->second;
+}
+
 } // namespace vr
 } // namespace dg

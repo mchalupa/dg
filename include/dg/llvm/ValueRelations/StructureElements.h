@@ -59,6 +59,14 @@ struct Precondition {
             : arg(a), rel(r), val(v) {}
 };
 
+struct BorderValue {
+    const llvm::Argument *from;
+    ValueRelations::Handle handle;
+
+    BorderValue(const llvm::Argument *f, ValueRelations::Handle h)
+            : from(f), handle(h) {}
+};
+
 } // namespace vr
 } // namespace dg
 

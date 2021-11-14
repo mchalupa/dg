@@ -672,20 +672,31 @@ RelationsAnalyzer::getBoundOnPointedToValue(
     return {bound, current};
 }
 
-V getCompared(const llvm::ICmpInst *icmp, V from) {
+std::pair<V, bool> getCompared(const ValueRelations &graph,
+                               const llvm::ICmpInst *icmp, V from) {
     const auto *op1 = icmp->getOperand(0);
     const auto *op2 = icmp->getOperand(1);
 
-    for (const auto &op : {op1, op2}) {
-        const auto *load = llvm::dyn_cast<llvm::LoadInst>(op);
-        // accept shifted, not only direcly loaded?
-        if (load && load->getPointerOperand() == from) {
-            if (op == op1)
-                return op2;
-            return op1;
+    for (const auto *op : {op1, op2}) {
+        if (const llvm::LoadInst *load =
+                    graph.getInstance<llvm::LoadInst>(op)) {
+            // accept shifted, not only direcly loaded?
+            if (load->getPointerOperand() == from) {
+                if (op == op1)
+                    return {op2, true};
+                return {op1, true};
+            }
+            if (const auto *doubleLoad = graph.getInstance<llvm::LoadInst>(
+                        load->getPointerOperand())) {
+                if (doubleLoad->getPointerOperand() == from) {
+                    if (op == op1)
+                        return {op2, false};
+                    return {op1, false};
+                }
+            }
         }
     }
-    return nullptr;
+    return {nullptr, false};
 }
 
 const llvm::ICmpInst *RelationsAnalyzer::getEQICmp(const VRLocation &join) {
@@ -723,7 +734,10 @@ void RelationsAnalyzer::inferFromNonEquality(VRLocation &join, V from,
     if (!icmp)
         return;
 
-    V compared = getCompared(icmp, from);
+    V compared;
+    bool direct;
+    std::tie(compared, direct) =
+            getCompared(codeGraph.getVRLocation(icmp).relations, icmp, from);
     if (!compared)
         return;
 
@@ -734,19 +748,48 @@ void RelationsAnalyzer::inferFromNonEquality(VRLocation &join, V from,
 
     const llvm::Function *func = icmp->getFunction();
 
-    if (join.relations.are(*initial.begin(),
+    if (direct) {
+        if (join.relations.are(*initial.begin(),
+                               s == Shift::INC ? Relations::SLE
+                                               : Relations::SGE,
+                               compared)) {
+            return;
+        }
+
+        structure.addPrecondition(
+                func, arg, s == Shift::INC ? Relations::SLE : Relations::SGE,
+                compared);
+
+        join.relations.set(placeholder,
                            s == Shift::INC ? Relations::SLE : Relations::SGE,
-                           compared)) {
-        return;
+                           compared);
+    } else {
+        ValueRelations &entryRels = codeGraph.getEntryLocation(*func).relations;
+
+        if (structure.hasBorderValues(func)) {
+            for (const auto &borderVal : structure.getBorderValuesFor(func)) {
+                if (borderVal.from == arg) {
+                    auto thisBorderPlaceholder =
+                            join.relations.getCorrespondingBorder(
+                                    entryRels, borderVal.handle);
+                    assert(thisBorderPlaceholder);
+                    join.relations.set(placeholder,
+                                       s == Shift::INC ? Relations::SLE
+                                                       : Relations::SGE,
+                                       *thisBorderPlaceholder);
+                    return;
+                }
+            }
+        }
+
+        Handle entryBorderPlaceholder = entryRels.newPlaceholderBucket();
+        structure.addBorderValue(func, arg, entryBorderPlaceholder);
+        entryRels.set(entryBorderPlaceholder, Relations::PT, compared);
+        entryRels.set(entryBorderPlaceholder,
+                      Relations::inverted(s == Shift::INC ? Relations::SLE
+                                                          : Relations::SGE),
+                      arg);
     }
-
-    structure.addPrecondition(
-            func, arg, s == Shift::INC ? Relations::SLE : Relations::SGE,
-            compared);
-
-    join.relations.set(placeholder,
-                       s == Shift::INC ? Relations::SLE : Relations::SGE,
-                       compared);
 }
 
 void RelationsAnalyzer::inferShiftInLoop(
@@ -906,6 +949,22 @@ void RelationsAnalyzer::processInstruction(ValueRelations &graph, I inst) {
     }
 }
 
+const llvm::Value *getArgument(const ValueRelations &graph,
+                               ValueRelations::Handle h) {
+    const llvm::Value *result = nullptr;
+    for (auto handleRel : graph.getRelated(h, Relations().sle().sge())) {
+        if (handleRel.second.has(Relations::EQ))
+            continue;
+        const llvm::Argument *arg =
+                graph.getInstance<llvm::Argument>(handleRel.first);
+        if (arg) {
+            assert(!result);
+            result = arg;
+        }
+    }
+    return result;
+}
+
 void RelationsAnalyzer::rememberValidated(const ValueRelations &prev,
                                           ValueRelations &graph, I inst) const {
     assert(&prev == &codeGraph.getVRLocation(inst).relations);
@@ -916,6 +975,18 @@ void RelationsAnalyzer::rememberValidated(const ValueRelations &prev,
             if (!mayOverwrite(inst, from)) {
                 for (V to : prev.getEqual(it->to()))
                     graph.set(from, Relations::PT, to);
+            }
+        }
+
+        if (!prev.hasEqual(it->from()) &&
+            !it->from().hasRelation(Relations::PF)) {
+            V arg = getArgument(prev, it->from());
+            if (arg && !mayOverwrite(inst, arg)) {
+                auto mH = graph.getCorrespondingBorder(prev, it->from());
+                assert(mH);
+
+                for (V to : prev.getEqual(it->to()))
+                    graph.set(*mH, Relations::PT, to);
             }
         }
     }

@@ -466,6 +466,12 @@ struct ValueRelations {
     const std::vector<bool> &getValidAreas() const { return validAreas; }
 
     // ************************** placeholder ***************************** //
+    Handle newPlaceholderBucket() {
+        Handle h = graph.getNewBucket();
+        bucketToVals[h];
+        return h;
+    }
+
     template <typename X>
     Handle newPlaceholderBucket(const X &from) {
         HandlePtr mH = maybeGet(from);
@@ -483,6 +489,8 @@ struct ValueRelations {
     static bool compare(C lt, Relations::Type rel, C rt);
     static bool compare(C lt, Relations rels, C rt);
     static Relations compare(C lt, C rt);
+    HandlePtr getCorrespondingBorder(const ValueRelations &other,
+                                     Handle otherH);
     bool merge(const ValueRelations &other, Relations relations = allRelations);
     bool unsetChanged() {
         bool old = changed;
