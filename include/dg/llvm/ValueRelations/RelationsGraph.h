@@ -75,13 +75,13 @@ class Bucket {
 
     friend void setRelated(Bucket &lt, RelationType type, Bucket &rt) {
         assert(lt != rt && "no reflexive relations");
-        rt.relatedBuckets[type].emplace(lt);
-        lt.relatedBuckets[inverted(type)].emplace(rt);
+        lt.relatedBuckets[type].emplace(rt);
+        rt.relatedBuckets[inverted(type)].emplace(lt);
     }
 
     friend void unsetRelated(Bucket &lt, RelationType type, Bucket &rt) {
-        rt.relatedBuckets[type].erase(lt);
-        lt.relatedBuckets[inverted(type)].erase(rt);
+        lt.relatedBuckets[type].erase(rt);
+        rt.relatedBuckets[inverted(type)].erase(lt);
     }
 
     Bucket &getRelated(RelationType type) {
@@ -410,8 +410,8 @@ class RelationsGraph {
     using iterator = EdgeIterator;
 
     RelationBits relationsBetween(Bucket &lt, Bucket &rt) const {
-        RelationsMap result = getRelated(rt, allRelations);
-        return result[lt];
+        RelationsMap result = getRelated(lt, allRelations);
+        return result[rt];
     }
 
     using RelationsMap = std::map<std::reference_wrapper<Bucket>, RelationBits>;
