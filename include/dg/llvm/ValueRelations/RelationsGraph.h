@@ -350,8 +350,10 @@ class RelationsGraph {
     bool haveConflictingRelation(Bucket &lt, RelationType type, Bucket &rt,
                                  RelationBits *maybeBetween = nullptr) const;
 
-    void addRelation(Bucket &lt, RelationType type, Bucket &rt,
-                     RelationBits *maybeBetween = nullptr);
+    Bucket &getNewBucket() {
+        auto pair = buckets.emplace(new Bucket());
+        return **pair.first;
+    }
 };
 
 template <typename T>
