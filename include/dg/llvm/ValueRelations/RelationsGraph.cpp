@@ -307,12 +307,12 @@ Bucket::BucketSet getIntersectingNonstrict(const RelationsGraph &graph,
     std::set_intersection(ltGE.begin(), ltGE.end(), rtLE.begin(), rtLE.end(),
                           std::inserter(result, result.begin()),
                           [](auto &ltPair, auto &rtPair) {
-                              return ltPair.first == rtPair.first;
+                              return ltPair.first < rtPair.first;
                           });
 
     Bucket::BucketSet other;
-    for (auto &pari : result)
-        other.emplace(pari.first);
+    for (auto &pair : result)
+        other.emplace(pair.first);
 
     return other;
 }
