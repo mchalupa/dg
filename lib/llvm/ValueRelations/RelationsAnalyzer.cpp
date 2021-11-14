@@ -919,6 +919,7 @@ bool RelationsAnalyzer::passFunction(const llvm::Function &function,
                 std::cerr << location.getPredLocation(i)->relations << "\n";
             }
             std::cerr << "before\n" << location.relations << "\n";
+            std::cerr << "inside\n";
         }
 #endif
 
