@@ -48,8 +48,8 @@ void checkSize(const CollectedEdges &result, const RelationsGraph &graph,
     CHECK(result.size() == expectedSize);
 }
 
-void reportSet(RelationsGraph &graph, Bucket &one, Relations::Type rel,
-               Bucket &two) {
+void reportSet(RelationsGraph &graph, const Bucket &one, Relations::Type rel,
+               const Bucket &two) {
     INFO("setting " << one.id << " " << rel << " " << two.id);
     graph.addRelation(one, rel, two);
     INFO("done");
@@ -67,7 +67,7 @@ void checkEdges(const RelationsGraph &graph, size_t relationsSet) {
     }
 }
 
-void checkRelations(const RelationsGraph &graph, Bucket &start,
+void checkRelations(const RelationsGraph &graph, const Bucket &start,
                     size_t expectedSize) {
     INFO("explored from " << start.id);
     CollectedEdges result = collect(graph.begin_related(start, allRelations),
@@ -92,7 +92,7 @@ void checkRelations(const RelationsMap &real, const RelationsMap &expected) {
     CHECK(real.size() == expected.size());
 }
 
-void checkRelations(const RelationsGraph &graph, Bucket &start,
+void checkRelations(const RelationsGraph &graph, const Bucket &start,
                     const RelationsMap &expected) {
     INFO("relations from " << start.id);
     RelationsMap real = graph.getRelated(start, allRelations);
@@ -132,11 +132,11 @@ TEST_CASE("edge iterator") {
 
     SECTION("no nodes") { REQUIRE(graph.begin() == graph.end()); }
 
-    Bucket &one = graph.getNewBucket();
+    const Bucket &one = graph.getNewBucket();
 
     SECTION("one node") { REQUIRE(graph.begin() == graph.end()); }
 
-    Bucket &two = graph.getNewBucket();
+    const Bucket &two = graph.getNewBucket();
 
     SECTION("two nodes path") {
         Relations::Type relation = GEN_NONEQ_REL();
@@ -169,7 +169,7 @@ TEST_CASE("edge iterator") {
         }
     }
 
-    Bucket &three = graph.getNewBucket();
+    const Bucket &three = graph.getNewBucket();
 
     SECTION("three node one relation cycle") {
         Relations::Type relOne = GEN_NONEQ_REL();
@@ -263,8 +263,8 @@ TEST_CASE("edge iterator") {
 TEST_CASE("testing relations") {
     RelationsGraph graph;
 
-    Bucket &one = graph.getNewBucket();
-    Bucket &two = graph.getNewBucket();
+    const Bucket &one = graph.getNewBucket();
+    const Bucket &two = graph.getNewBucket();
 
     SECTION("unrelated") {
         Relations::Type rel = GEN_REL();
@@ -293,7 +293,7 @@ TEST_CASE("testing relations") {
     }
 
     SECTION("transitive") {
-        Bucket &three = graph.getNewBucket();
+        const Bucket &three = graph.getNewBucket();
 
         Relations::Type fst = GENERATE(Relations::LT, Relations::LE);
         Relations::Type snd = GENERATE(Relations::LT, Relations::LE);
@@ -311,13 +311,13 @@ TEST_CASE("testing relations") {
 TEST_CASE("big graph") {
     RelationsGraph graph;
 
-    Bucket &one = graph.getNewBucket();
-    Bucket &two = graph.getNewBucket();
-    Bucket &three = graph.getNewBucket();
-    Bucket &four = graph.getNewBucket();
-    Bucket &five = graph.getNewBucket();
-    Bucket &six = graph.getNewBucket();
-    Bucket &seven = graph.getNewBucket();
+    const Bucket &one = graph.getNewBucket();
+    const Bucket &two = graph.getNewBucket();
+    const Bucket &three = graph.getNewBucket();
+    const Bucket &four = graph.getNewBucket();
+    const Bucket &five = graph.getNewBucket();
+    const Bucket &six = graph.getNewBucket();
+    const Bucket &seven = graph.getNewBucket();
 
     Relations eq = Relations().eq().le().ge();
     Relations le = Relations().le();
