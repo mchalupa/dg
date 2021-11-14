@@ -477,7 +477,7 @@ bool RelationsAnalyzer::processPhi(ValueRelations &newGraph,
             *std::prev(std::prev(assumedPred->end()));
 
     VRLocation &source = codeGraph.getVRLocation(&lastBeforeTerminator);
-    bool result = newGraph.merge(source.relations);
+    __attribute__((unused)) bool result = newGraph.merge(source.relations);
     assert(result);
     return true;
 }
@@ -700,7 +700,8 @@ void RelationsAnalyzer::mergeRelations(VRLocation &location) {
 
     // merge relations from tree predecessor only
     if (location.isJustLoopJoin()) {
-        bool result = thisGraph.merge(predGraph, comparative);
+        __attribute__((unused)) bool result =
+                thisGraph.merge(predGraph, comparative);
         assert(result);
     }
 }
