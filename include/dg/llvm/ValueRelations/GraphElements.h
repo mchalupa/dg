@@ -215,6 +215,18 @@ struct VRLocation {
         return true;
     }
 
+    VRLocation &getTreePredecessor() const {
+        assert(isJustLoopJoin());
+
+        VRLocation *treePred = nullptr;
+        for (VREdge *predEdge : predecessors) {
+            if (predEdge->type == EdgeType::TREE)
+                treePred = predEdge->source;
+        }
+        assert(treePred);
+        return *treePred;
+    }
+
 #ifndef NDEBUG
     void dump() const { std::cout << id << std::endl; }
 #endif
