@@ -18,6 +18,11 @@ inline std::string getValName(const llvm::Value *val) {
     ro.flush();
 
     std::string result = ostr.str();
+    size_t quote = result.find("\"");
+    while (quote != std::string::npos) {
+        result.replace(quote, 1, "\\\"");
+        quote = result.find("\"", quote + 2);
+    }
     size_t start = result.find_first_not_of(" ");
     assert(start != std::string::npos);
 
