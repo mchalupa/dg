@@ -125,33 +125,34 @@ const RelationBits undirected =
         ~(p(RelationType::GE) | p(RelationType::GT) | p(RelationType::PF));
 
 #ifndef NDEBUG
-void dumpRelation(RelationType r) {
+std::ostream &operator<<(std::ostream &out, RelationType r) {
     switch (r) {
     case RelationType::EQ:
-        std::cerr << "EQ";
+        out << "EQ";
         break;
     case RelationType::NE:
-        std::cerr << "NE";
+        out << "NE";
         break;
     case RelationType::LE:
-        std::cerr << "LE";
+        out << "LE";
         break;
     case RelationType::LT:
-        std::cerr << "LT";
+        out << "LT";
         break;
     case RelationType::GE:
-        std::cerr << "GE";
+        out << "GE";
         break;
     case RelationType::GT:
-        std::cerr << "GT";
+        out << "GT";
         break;
     case RelationType::PT:
-        std::cerr << "POINTS_TO";
+        out << "POINTS_TO";
         break;
     case RelationType::PF:
-        std::cerr << "POINTED_FROM";
+        out << "POINTED_FROM";
         break;
     }
+    return out;
 }
 #endif
 
