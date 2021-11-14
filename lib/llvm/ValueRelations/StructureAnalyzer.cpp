@@ -196,6 +196,15 @@ void StructureAnalyzer::categorizeEdges() {
     codeGraph.hasCategorizedEdges();
 }
 
+bool allEdgesOut(const std::set<VREdge *> &backwardReach,
+                 const VRLocation *loc) {
+    for (size_t i = 0; i < loc->succsSize(); ++i) {
+        if (backwardReach.find(loc->getSuccEdge(i)) != backwardReach.end())
+            return false;
+    }
+    return true;
+}
+
 void StructureAnalyzer::findLoops() {
     for (const auto &function : module) {
         if (function.isDeclaration())
@@ -207,6 +216,7 @@ void StructureAnalyzer::findLoops() {
 
             if (!location.isJustLoopJoin())
                 continue;
+            // std::cerr << location.id << "\n";
 
             auto backwardReach = collectBackward(function, location);
 
@@ -216,13 +226,29 @@ void StructureAnalyzer::findLoops() {
                                      std::vector<const llvm::Instruction *>())
                             .first->second;
 
+            // iterates over nodes, not edges, so the code is a bit hacked :(
+            // TODO write proper edge iterator
             for (auto it = codeGraph.lazy_dfs_begin(function, location);
                  it != codeGraph.lazy_dfs_end(); ++it) {
-                VREdge *edge = it.getEdge();
-                if (backwardReach.find(edge) != backwardReach.end()) {
-                    if (edge->op->isInstruction()) {
-                        auto *op = static_cast<VRInstruction *>(edge->op.get());
-                        loop.emplace_back(op->getInstruction());
+                const VRLocation &loc = *it;
+
+                for (size_t i = 0; i < loc.succsSize(); ++i) {
+                    VREdge *edge = loc.getSuccEdge(i);
+
+                    if (backwardReach.find(edge) != backwardReach.end()) {
+                        if (!edge->target)
+                            continue;
+
+                        if (allEdgesOut(backwardReach, edge->target)) {
+                            location.loopEnds.emplace_back(edge);
+                            continue;
+                        }
+
+                        if (edge->op->isInstruction()) {
+                            auto *op = static_cast<VRInstruction *>(
+                                    edge->op.get());
+                            loop.emplace_back(op->getInstruction());
+                        }
                     }
                 }
             }
@@ -249,8 +275,11 @@ std::set<VREdge *> StructureAnalyzer::collectBackward(const llvm::Function &f,
     std::set<VREdge *> result;
     for (auto it = codeGraph.backward_dfs_begin(f, from);
          it != codeGraph.backward_dfs_end(); ++it) {
-        if (VREdge *edge = it.getEdge())
-            result.emplace(edge);
+        VRLocation &loc = *it;
+        for (size_t i = 0; i < loc.succsSize(); ++i) {
+            assert(loc.getSuccEdge(i));
+            result.emplace(loc.getSuccEdge(i));
+        }
     }
 
     assert(from.succsSize() >= 1);
