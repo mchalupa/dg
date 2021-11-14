@@ -54,12 +54,29 @@ struct Relations {
     bool anyCommon(const Relations &other) const {
         return (bits & other.bits).any();
     }
+    /* if A lt B and B rt C, return relations between A and C */
+    friend Relations compose(const Relations &lt, const Relations &rt);
 
     friend bool operator==(const Relations &lt, const Relations &rt) {
         return lt.bits == rt.bits;
     }
     friend bool operator!=(const Relations &lt, const Relations &rt) {
         return !(lt == rt);
+    }
+
+    Relations &operator&=(const Relations &other) {
+        bits &= other.bits;
+        return *this;
+    }
+    Relations &operator|=(const Relations &other) {
+        bits |= other.bits;
+        return *this;
+    }
+    friend Relations operator&(const Relations &lt, const Relations &rt) {
+        return Relations((lt.bits & rt.bits).to_ulong());
+    }
+    friend Relations operator|(const Relations &lt, const Relations &rt) {
+        return Relations((lt.bits | rt.bits).to_ulong());
     }
 
 #ifndef NDEBUG

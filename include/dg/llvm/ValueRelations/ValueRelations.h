@@ -89,13 +89,13 @@ struct ValueRelations {
         unset(val, Relations().set(rel));
     }
 
-    // ************************** general are ***************************** //
-    bool _are(Handle lt, Relations::Type rel, Handle rt) const;
-    bool _are(Handle lt, Relations::Type rel, V rt) const;
-    bool _are(Handle lt, Relations::Type rel, C rt) const;
-    bool _are(V lt, Relations::Type rel, Handle rt) const;
-    bool _are(C lt, Relations::Type rel, Handle rt) const;
-    bool _are(V lt, Relations::Type rel, V rt) const;
+    // *********************** general between *************************** //
+    Relations _between(Handle lt, Handle rt) const;
+    Relations _between(Handle lt, V rt) const;
+    Relations _between(Handle lt, C rt) const;
+    Relations _between(V lt, Handle rt) const;
+    Relations _between(C lt, Handle rt) const;
+    Relations _between(V lt, V rt) const;
 
     // ************************** general has ***************************** //
     template <typename X>
@@ -257,6 +257,7 @@ struct ValueRelations {
     // ***************************** other ******************************** //
     static bool compare(C lt, Relations::Type rel, C rt);
     static bool compare(C lt, Relations rels, C rt);
+    static Relations compare(C lt, C rt);
     Handle getCorresponding(const ValueRelations &other, Handle otherH,
                             const std::vector<V> &otherEqual);
     Handle getCorresponding(const ValueRelations &other, Handle otherH);
@@ -319,8 +320,12 @@ struct ValueRelations {
 
     // ******************************* is ********************************** //
     template <typename X, typename Y>
+    Relations between(const X &lt, const Y &rt) const {
+        return _between(lt, rt);
+    }
+    template <typename X, typename Y>
     bool are(const X &lt, Relations::Type rel, const Y &rt) const {
-        return _are(lt, rel, rt);
+        return _between(lt, rt).has(rel);
     }
     template <typename X, typename Y>
     bool isEqual(const X &lt, const Y &rt) const {

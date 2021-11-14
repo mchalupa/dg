@@ -5,63 +5,55 @@
 namespace dg {
 namespace vr {
 
-// *************************** iterators ****************************** //
-bool ValueRelations::_are(Handle lt, Relations::Type rel, Handle rt) const {
-    return graph.areRelated(lt, rel, rt);
+// *********************** general between *************************** //
+Relations ValueRelations::_between(Handle lt, Handle rt) const {
+    return graph.getRelated(lt, allRelations)[rt];
 }
-
-bool ValueRelations::_are(Handle lt, Relations::Type rel, V rt) const {
+Relations ValueRelations::_between(Handle lt, V rt) const {
     HandlePtr mRt = maybeGet(rt);
-
     if (mRt)
-        return are(lt, rel, *mRt);
+        return _between(lt, *mRt);
 
-    return are(lt, rel, llvm::dyn_cast<BareC>(rt));
+    return _between(lt, llvm::dyn_cast<BareC>(rt));
 }
-
-bool ValueRelations::_are(Handle lt, Relations::Type rel, C cRt) const {
-    // right cannot be expressed as a constant
+Relations ValueRelations::_between(Handle lt, C cRt) const {
     if (!cRt)
-        return false;
+        return Relations();
 
-    C boundLt;
-    Relations relsLt;
-    std::tie(boundLt, relsLt) =
-            getBound(lt, Relations::isStrict(rel)
-                                 ? Relations().set(Relations::getNonStrict(rel))
-                                 : Relations().eq());
+    for (Relations::Type rel : {Relations::LE, Relations::GE}) {
+        C boundLt;
+        Relations relsLt;
+        std::tie(boundLt, relsLt) = getBound(lt, Relations().set(rel));
 
-    // left is not bound in direction of the relation by a constant
-    if (!boundLt)
-        return false;
+        if (!boundLt)
+            continue;
 
-    // constant already is strictly related to the left value
-    if (Relations::isStrict(rel) && relsLt.has(rel))
-        return compare(boundLt, Relations::getNonStrict(rel), cRt);
-
-    // otherwise just compare the constants
-    return compare(boundLt, rel, cRt);
+        Relations relsBound = compare(boundLt, cRt);
+        // lt <= boundLt <= cRt || lt >= boundLt >= cRt
+        if (relsBound.has(rel))
+            return compose(relsLt, relsBound);
+    }
+    return Relations();
 }
-
-bool ValueRelations::_are(V lt, Relations::Type rel, Handle rt) const {
-    return are(rt, Relations::inverted(rel), lt);
+Relations ValueRelations::_between(V lt, Handle rt) const {
+    return _between(rt, lt).invert();
 }
-
-bool ValueRelations::_are(C lt, Relations::Type rel, Handle rt) const {
-    return are(rt, Relations::inverted(rel), lt);
+Relations ValueRelations::_between(C lt, Handle rt) const {
+    return _between(rt, lt).invert();
 }
-
-bool ValueRelations::_are(V lt, Relations::Type rel, V rt) const {
+Relations ValueRelations::_between(V lt, V rt) const {
     if (HandlePtr mLt = maybeGet(lt))
-        return are(*mLt, rel, rt);
+        return _between(*mLt, rt);
 
-    if (HandlePtr mRt = maybeGet(lt))
-        return are(llvm::dyn_cast<BareC>(lt), rel, *mRt);
+    if (HandlePtr mRt = maybeGet(rt))
+        return _between(llvm::dyn_cast<BareC>(lt), *mRt);
 
     C cLt = llvm::dyn_cast<BareC>(lt);
     C cRt = llvm::dyn_cast<BareC>(rt);
 
-    return cLt && cRt && compare(cLt, rel, cRt);
+    if (!cLt || !cRt)
+        return Relations();
+    return compare(cLt, cRt);
 }
 
 // *************************** iterators ****************************** //
@@ -283,32 +275,24 @@ void ValueRelations::erasePlaceholderBucket(Handle h) {
 
 // ***************************** other ******************************** //
 bool ValueRelations::compare(C lt, Relations::Type rel, C rt) {
-    switch (rel) {
-    case Relations::EQ:
-        return lt->getSExtValue() == rt->getSExtValue();
-    case Relations::NE:
-        return lt->getSExtValue() != rt->getSExtValue();
-    case Relations::LE:
-        return lt->getSExtValue() <= rt->getSExtValue();
-    case Relations::LT:
-        return lt->getSExtValue() < rt->getSExtValue();
-    case Relations::GE:
-    case Relations::GT:
-        return compare(rt, Relations::inverted(rel), lt);
-    case Relations::PT:
-    case Relations::PF:
-        break;
-    }
-    assert(0 && "unreachable");
-    abort();
+    return compare(lt, rt).has(rel);
 }
 
 bool ValueRelations::compare(C lt, Relations rels, C rt) {
-    for (Relations::Type rel : Relations::all) {
-        if (rels.has(rel) && compare(lt, rel, rt))
-            return true;
-    }
-    return false;
+    return compare(lt, rt).anyCommon(rels);
+}
+
+Relations ValueRelations::compare(C lt, C rt) {
+    int64_t iLt = lt->getSExtValue();
+    int64_t iRt = rt->getSExtValue();
+    Relations result;
+    if (iLt < iRt)
+        result.lt();
+    else if (iLt > iRt)
+        result.gt();
+    else
+        result.eq();
+    return result.addImplied();
 }
 
 bool ValueRelations::holdsAnyRelations() const {

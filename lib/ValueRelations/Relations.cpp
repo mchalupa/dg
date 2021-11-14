@@ -121,6 +121,28 @@ Relations Relations::getAugmented(Relations rels) {
     return augmented;
 }
 
+Relations compose(const Relations &lt, const Relations &rt) {
+    if (lt.has(Relations::EQ))
+        return rt;
+    if (rt.has(Relations::EQ))
+        return lt;
+    Relations result;
+    for (Relations::Type ltRel : Relations::all) {
+        if (!lt.has(ltRel))
+            continue;
+
+        for (Relations::Type rtRel : Relations::all) {
+            if (rt.has(rtRel) && Relations::transitiveOver(ltRel, rtRel)) {
+                if (Relations::isStrict(ltRel) || Relations::isStrict(rtRel))
+                    result.set(ltRel);
+                else
+                    result.set(ltRel);
+            }
+        }
+    }
+    return result.addImplied();
+}
+
 bool Relations::transitiveOver(Type fst, Type snd) {
     switch (fst) {
     case LE:
