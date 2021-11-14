@@ -20,6 +20,46 @@ namespace vr {
 enum class RelationType { EQ, NE, LE, LT, GE, GT, PT, PF };
 using RelationBits = std::bitset<8>;
 
+struct Relations {
+    enum Type { EQ, NE, LE, LT, GE, GT, PT, PF };
+    static const size_t total = 8;
+
+    static Type inverted(Type type);
+    static Type negated(Type type);
+    static bool transitiveOver(Type one, Type two);
+    static Relations conflicting(Type type);
+
+    bool has(Type type) const { return bits[type]; }
+    Relations &set(Type t) {
+        bits.set(t);
+        return *this;
+    }
+
+    Relations &eq() { return set(EQ); }
+    Relations &ne() { return set(NE); }
+    Relations &le() { return set(LE); }
+    Relations &lt() { return set(LT); }
+    Relations &ge() { return set(GE); }
+    Relations &gt() { return set(GT); }
+    Relations &pt() { return set(PT); }
+    Relations &pf() { return set(PF); }
+
+    Relations &addImplied();
+    Relations &invert() {
+        ~bits;
+        return *this;
+    }
+    bool conflictsWith(Type type) const {
+        return (bits & conflicting(type).bits).any();
+    }
+    bool anyCommon(const Relations &other) const {
+        return (bits & other.bits).any();
+    }
+
+  private:
+    std::bitset<total> bits;
+};
+
 RelationType toRelation(size_t i);
 size_t toInt(RelationType t);
 RelationType inverted(RelationType type);
@@ -30,8 +70,8 @@ bool transitiveOver(RelationType fst, RelationType snd);
 extern const RelationBits allRelations;
 
 #ifndef NDEBUG
-void dumpRelation(RelationType r);
 std::ostream &operator<<(std::ostream &out, RelationType r);
+std::ostream &operator<<(std::ostream &out, Relations::Type r);
 #endif
 
 class Bucket {

@@ -13,6 +13,29 @@ size_t toInt(RelationType t) { return static_cast<size_t>(t); }
 
 size_t p(RelationType t) { return pow(2, static_cast<size_t>(t)); }
 
+Relations::Type Relations::inverted(Relations::Type type) {
+    switch (type) {
+    case EQ:
+        return EQ;
+    case NE:
+        return NE;
+    case LE:
+        return GE;
+    case LT:
+        return GT;
+    case GE:
+        return LE;
+    case GT:
+        return LT;
+    case PT:
+        return PF;
+    case PF:
+        return PT;
+    }
+    assert(0 && "unreachable");
+    abort();
+}
+
 RelationType inverted(RelationType type) {
     switch (type) {
     case RelationType::EQ:
@@ -36,6 +59,28 @@ RelationType inverted(RelationType type) {
     abort();
 }
 
+Relations::Type Relations::negated(Type type) {
+    switch (type) {
+    case EQ:
+        return NE;
+    case NE:
+        return EQ;
+    case LE:
+        return GT;
+    case LT:
+        return GE;
+    case GE:
+        return LT;
+    case GT:
+        return LE;
+    case PT:
+    case PF:
+        break;
+    }
+    assert(0 && "no negation for relation");
+    abort();
+}
+
 RelationType negated(RelationType type) {
     switch (type) {
     case RelationType::EQ:
@@ -54,6 +99,28 @@ RelationType negated(RelationType type) {
         assert(0 && "no negation for relation");
         abort();
     }
+}
+
+Relations Relations::conflicting(Relations::Type type) {
+    switch (type) {
+    case EQ:
+        return Relations().ne().lt().gt();
+    case NE:
+        return Relations().eq();
+    case LT:
+        return Relations().eq().gt().ge();
+    case GT:
+        return Relations().eq().lt().le();
+    case LE:
+        return Relations().gt();
+    case GE:
+        return Relations().lt();
+    case PT:
+    case PF:
+        return Relations();
+    }
+    assert(0 && "unreachable");
+    abort();
 }
 
 RelationBits conflicting(RelationType type) {
@@ -76,6 +143,16 @@ RelationBits conflicting(RelationType type) {
     }
     assert(0 && "unreachable");
     abort();
+}
+
+Relations &Relations::addImplied() {
+    if (has(EQ))
+        le().ge();
+    if (has(LT))
+        le().ne();
+    if (has(GT))
+        ge().ne();
+    return *this;
 }
 
 void addImplied(RelationBits &bits) {
@@ -105,6 +182,24 @@ void addImplied(RelationBits &bits) {
     }
 }
 
+bool Relations::transitiveOver(Type fst, Type snd) {
+    switch (fst) {
+    case LE:
+    case LT:
+        return snd == LE || snd == LT;
+    case GE:
+    case GT:
+        return snd == GE || snd == GT;
+    case EQ:
+    case NE:
+    case PT:
+    case PF:
+        return false;
+    }
+    assert(0 && "unreachable");
+    abort();
+}
+
 bool transitiveOver(RelationType fst, RelationType snd) {
     switch (fst) {
     case RelationType::LE:
@@ -127,6 +222,36 @@ bool transitiveOver(RelationType fst, RelationType snd) {
 const RelationBits allRelations = ~0;
 
 #ifndef NDEBUG
+std::ostream &operator<<(std::ostream &out, Relations::Type r) {
+    switch (r) {
+    case Relations::EQ:
+        out << "EQ";
+        break;
+    case Relations::NE:
+        out << "NE";
+        break;
+    case Relations::LE:
+        out << "LE";
+        break;
+    case Relations::LT:
+        out << "LT";
+        break;
+    case Relations::GE:
+        out << "GE";
+        break;
+    case Relations::GT:
+        out << "GT";
+        break;
+    case Relations::PT:
+        out << "POINTS_TO";
+        break;
+    case Relations::PF:
+        out << "POINTED_FROM";
+        break;
+    }
+    return out;
+}
+
 std::ostream &operator<<(std::ostream &out, RelationType r) {
     switch (r) {
     case RelationType::EQ:
