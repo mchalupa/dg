@@ -155,8 +155,15 @@ struct VRLocation {
     unsigned predsSize() const { return predecessors.size(); }
     unsigned succsSize() const { return successors.size(); }
 
-    std::vector<VREdge *> getPredecessors();
-    std::vector<VREdge *> getSuccessors();
+    VREdge *getPredEdge(unsigned i) const { return predecessors[i]; }
+    VREdge *getSuccEdge(unsigned i) const { return successors[i].get(); }
+
+    VRLocation *getPredLocation(unsigned i) const {
+        return predecessors[i]->source;
+    }
+    VRLocation *getSuccLocation(unsigned i) const {
+        return successors[i]->target;
+    }
 
     std::vector<VRLocation *> getPredLocations();
     std::vector<VRLocation *> getSuccLocations();
@@ -188,7 +195,6 @@ class VRCodeGraph {
     void setEntryLocation(const llvm::Function *f, VRLocation &loc);
 
   public:
-
     VRLocation &getVRLocation(const llvm::Instruction *ptr) const;
     VRLocation &getEntryLocation(const llvm::Function *f) const;
 
@@ -231,9 +237,9 @@ class VRCodeGraph {
         std::vector<std::tuple<VRLocation *, unsigned, VREdge *>> stack;
         Dir dir;
 
-        std::vector<VREdge *> getNextEdges(VRLocation *loc) const {
-            return dir == Dir::FORWARD ? loc->getSuccessors()
-                                       : loc->getPredecessors();
+        VREdge *getNextEdge(VRLocation *loc, unsigned i) const {
+            return dir == Dir::FORWARD ? loc->getSuccEdge(i)
+                                       : loc->getPredEdge(i);
         }
         VRLocation *getNextLocation(VREdge *edge) const {
             return dir == Dir::FORWARD ? edge->target : edge->source;
@@ -279,18 +285,20 @@ class VRCodeGraph {
                 std::tie(current, index, prevEdge) = stack.back();
                 stack.pop_back();
 
-                std::vector<VREdge *> nextEdges = getNextEdges(current);
+                unsigned nextSize = dir == Dir::FORWARD ? current->succsSize()
+                                                        : current->predsSize();
                 // do not explore if there is no target or if target was already
                 // explored or if is in other function
-                while (index < nextEdges.size() &&
-                       isIrrelevant(nextEdges[index]))
+
+                while (index < nextSize &&
+                       isIrrelevant(getNextEdge(current, index)))
                     ++index;
 
-                if (index >= nextEdges.size())
+                if (index >= nextSize)
                     continue;
                 stack.emplace_back(current, index + 1, prevEdge);
 
-                VREdge *nextEdge = nextEdges[index];
+                VREdge *nextEdge = getNextEdge(current, index);
                 VRLocation *next = getNextLocation(nextEdge);
 
                 Visit::find(next);

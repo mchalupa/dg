@@ -33,18 +33,6 @@ void VRLocation::connect(VRLocation *target, VROp *op) {
 
 void VRLocation::connect(VRLocation &target, VROp *op) { connect(&target, op); }
 
-std::vector<VREdge *> VRLocation::getPredecessors() { return predecessors; }
-
-std::vector<VREdge *>
-VRLocation::getSuccessors() { // TODO create an iterator to unwrap the unique
-                              // pointers
-    std::vector<VREdge *> result;
-    for (auto &succ : successors) {
-        result.push_back(succ.get());
-    }
-    return result;
-}
-
 std::vector<VRLocation *> VRLocation::getPredLocations() {
     std::vector<VRLocation *> result;
     for (VREdge *edge : predecessors) {

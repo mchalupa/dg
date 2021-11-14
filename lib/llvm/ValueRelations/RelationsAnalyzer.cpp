@@ -691,7 +691,7 @@ bool RelationsAnalyzer::anyInvalidated(const std::set<V> &allInvalid,
 
 bool RelationsAnalyzer::isGoodFromForPlaceholder(
         const std::vector<VRLocation *> &preds, V from,
-        const std::vector<V> values) {
+        const std::vector<V> &values) {
     if (!loadsSomethingInAll(preds, from))
         return false;
 
@@ -720,8 +720,8 @@ void RelationsAnalyzer::inferChangeInLoop(ValueRelations &thisGraph,
 
     for (const auto *val : structure.getInloopValues(location)) {
         VRLocation &before = codeGraph.getVRLocation(val);
-        assert(before.getSuccessors().size() == 1);
-        VRLocation *targetLoc = before.getSuccessors()[0]->target;
+        assert(before.succsSize() == 1);
+        VRLocation *targetLoc = before.getSuccLocation(0);
 
         auto invalidated =
                 instructionInvalidatesFromGraph(outloopPred->relations, val);
@@ -790,7 +790,7 @@ void RelationsAnalyzer::inferFromChangeLocations(ValueRelations &newGraph,
                     if (invalidated.find(from) != invalidated.end()) {
                         locationsAfterInvalidating.emplace_back(
                                 codeGraph.getVRLocation(invalidating)
-                                        .getSuccLocations()[0]);
+                                        .getSuccLocation(0));
                     }
                 }
 
@@ -884,7 +884,7 @@ void RelationsAnalyzer::intersectByLoad(const std::vector<VRLocation *> &preds,
 
 // **************************** merge ******************************* //
 void RelationsAnalyzer::mergeRelations(VRLocation &location) {
-    assert(location.predecessors.size() > 1);
+    assert(location.predsSize() > 1);
 
     const ValueRelations &predGraph = location.getTreePredecessor().relations;
 
@@ -934,30 +934,25 @@ void RelationsAnalyzer::mergeRelations(VRLocation &location) {
     }
 }
 
-void RelationsAnalyzer::mergeRelationsByLoads(VRLocation &location) {
-    mergeRelationsByLoads(location.getPredLocations(), location);
-}
-
-void RelationsAnalyzer::mergeRelationsByLoads(
-        const std::vector<VRLocation *> &preds, VRLocation &location) {
-    ValueRelations &newGraph = location.relations;
+void RelationsAnalyzer::mergeRelationsByLoads(VRLocation &loc) {
+    ValueRelations &newGraph = loc.relations;
 
     std::vector<V> froms;
-    for (auto fromsValues :
-         location.getTreePredecessor().relations.getAllLoads()) {
+    for (auto fromsValues : loc.getTreePredecessor().relations.getAllLoads()) {
         for (auto from : fromsValues.first) {
-            if (isGoodFromForPlaceholder(preds, from, fromsValues.second))
+            if (isGoodFromForPlaceholder(loc.getPredLocations(), from,
+                                         fromsValues.second))
                 froms.emplace_back(from);
         }
     }
 
     // infer some invariants in loop
-    if (preds.size() == 2 && location.isJustLoopJoin() &&
-        preds[0]->relations.holdsAnyRelations() &&
-        preds[1]->relations.holdsAnyRelations())
-        inferChangeInLoop(newGraph, froms, location);
+    if (loc.predsSize() == 2 && loc.isJustLoopJoin() &&
+        loc.getPredLocation(0)->relations.holdsAnyRelations() &&
+        loc.getPredLocation(1)->relations.holdsAnyRelations())
+        inferChangeInLoop(newGraph, froms, loc);
 
-    inferFromChangeLocations(newGraph, location);
+    inferFromChangeLocations(newGraph, loc);
 }
 
 // ***************************** edge ******************************* //
@@ -1083,16 +1078,15 @@ bool RelationsAnalyzer::passFunction(const llvm::Function *function,
         }
         if (print && location.id == 9)
             std::cerr << "pred\n"
-                      << location.predecessors[0]->source->relations << "\n"
-                      << location.predecessors[1]->source->relations
-                      << "before\n"
+                      << location.getPredLocation(0)->relations << "\n"
+                      << location.getPredLocation(1)->relations << "before\n"
                       << location.relations << "\n";
 
-        if (location.predecessors.size() > 1) {
+        if (location.predsSize() > 1) {
             mergeRelations(location);
             mergeRelationsByLoads(location);
-        } else if (location.predecessors.size() == 1) {
-            VREdge *edge = location.predecessors[0];
+        } else if (location.predsSize() == 1) {
+            VREdge *edge = location.getPredEdge(0);
             processOperation(edge->source, edge->target, edge->op.get());
         } // else no predecessors => nothing to be passed
 
