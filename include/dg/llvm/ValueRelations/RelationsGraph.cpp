@@ -132,7 +132,7 @@ bool transitiveOver(RelationType fst, RelationType snd) {
     case RelationType::NE:
     case RelationType::PT:
     case RelationType::PF:
-        assert(0 && "unreachable");
+        // assert(0 && "unreachable");
         return false;
     }
     assert(0 && "unreachable");
@@ -228,20 +228,15 @@ RelationsMap getAugmentedRelated(const RelationsGraph &graph, Bucket &start,
     Bucket::BucketSet nestedVisited;
     for (auto it = graph.begin_related(start, relations);
          it != graph.end_related(start); ++it) {
-        if (shouldAdd(*it, start))
-            result[it->to()].set(toInt(it->rel()));
-
-        if (shouldSkip(*it)) {
-            it.skipSuccessors();
-            continue;
-        }
+        result[it->to()].set(toInt(it->rel()));
 
         if (!strict(it->rel()))
             continue;
 
         result[it->to()].set(toInt(getNonStrict(it->rel())), false);
 
-        for (auto nestedIt = it->to().begin(nestedVisited, relations, false);
+        for (auto nestedIt =
+                     it->to().begin(nestedVisited, relations, true, true);
              nestedIt != it->to().end(nestedVisited); ++nestedIt) {
             if (toFirstStrict)
                 result[nestedIt->to()].set(toInt(it->rel()), false);

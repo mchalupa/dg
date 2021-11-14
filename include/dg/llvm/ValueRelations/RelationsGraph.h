@@ -162,19 +162,32 @@ class Bucket {
     class EdgeIterator {
         std::vector<RelationEdge> stack;
         std::reference_wrapper<BucketSet> visited;
+
+      public:
         RelationBits allowedEdges;
-
         bool undirectedOnly;
+        bool relationsFocused;
 
+      private:
         bool isInvertedEdge() {
             return stack.size() >= 2 &&
                    stack.back().to() == std::next(stack.rbegin())->from();
         }
 
+        bool shouldFollowThrough() {
+            if (stack.size() < 2)
+                return true;
+            RelationType prev = std::next(stack.rbegin())->rel();
+            return /*transitive(prev) &&*/ transitiveOver(prev,
+                                                          stack.back().rel());
+        }
+
         bool nextViableTopEdge() {
             while (stack.back().nextViableEdge()) {
                 if (allowedEdges[toInt(stack.back().rel())] &&
-                    (!undirectedOnly || !isInvertedEdge()))
+                    (!undirectedOnly ||
+                     !isInvertedEdge())) // && (!relationsFocused ||
+                                         // shouldFollowThrough()))
                     return true;
                 ++stack.back().bucketIt;
             }
@@ -191,8 +204,10 @@ class Bucket {
         // for end iterator
         EdgeIterator(BucketSet &v) : visited(v) {}
         // for begin iterator
-        EdgeIterator(Bucket &start, BucketSet &v, const RelationBits &a, bool u)
-                : visited(v), allowedEdges(a), undirectedOnly(u) {
+        EdgeIterator(Bucket &start, BucketSet &v, const RelationBits &a, bool u,
+                     bool r)
+                : visited(v), allowedEdges(a), undirectedOnly(u),
+                  relationsFocused(r) {
             assert(start.relatedBuckets.begin() != start.relatedBuckets.end() &&
                    "at least one relation");
             if (visited.get().find(start) != visited.get().end())
@@ -223,9 +238,10 @@ class Bucket {
 
             // plan visit to first successor of "to" bucket if unexplored so far
             if (visited.get().find(to) == visited.get().end()) {
-                visited.get().emplace(to);
-
                 stack.emplace_back(to);
+
+                // if (!relationsFocused || nextViableTopEdge())
+                visited.get().emplace(to);
             }
 
             nextViableEdge();
@@ -250,12 +266,13 @@ class Bucket {
     };
 
     EdgeIterator begin(BucketSet &visited, const RelationBits &relations,
-                       bool undirectedOnly) {
-        return EdgeIterator(*this, visited, relations, undirectedOnly);
+                       bool undirectedOnly, bool relationsFocused) {
+        return EdgeIterator(*this, visited, relations, undirectedOnly,
+                            relationsFocused);
     }
 
     EdgeIterator begin(BucketSet &visited) {
-        return begin(visited, allRelations, true);
+        return begin(visited, allRelations, true, true);
     }
 
     EdgeIterator end(BucketSet &visited) { return EdgeIterator(visited); }
@@ -281,9 +298,6 @@ class RelationsGraph {
         using BucketIterator = UniqueBucketSet::iterator;
         Bucket::BucketSet visited;
 
-        RelationBits allowedEdges;
-        bool undirectedOnly;
-
         BucketIterator bucketIt;
         BucketIterator endIt;
         Bucket::EdgeIterator edgeIt;
@@ -293,8 +307,9 @@ class RelationsGraph {
                 ++bucketIt;
                 if (bucketIt == endIt)
                     return;
-                edgeIt = (*bucketIt)->begin(visited, allowedEdges,
-                                            undirectedOnly);
+                edgeIt = (*bucketIt)->begin(visited, edgeIt.allowedEdges,
+                                            edgeIt.undirectedOnly,
+                                            edgeIt.relationsFocused);
             }
         }
 
@@ -308,26 +323,21 @@ class RelationsGraph {
         EdgeIterator(BucketIterator end)
                 : bucketIt(end), endIt(end), edgeIt(visited) {}
         EdgeIterator(BucketIterator start, BucketIterator end,
-                     const RelationBits &a, bool u)
-                : allowedEdges(a), undirectedOnly(u), bucketIt(start),
-                  endIt(end), edgeIt((*bucketIt)->begin(visited, allowedEdges,
-                                                        undirectedOnly)) {
+                     const RelationBits &a, bool u, bool r)
+                : bucketIt(start), endIt(end),
+                  edgeIt((*bucketIt)->begin(visited, a, u, r)) {
             assert(bucketIt != endIt && "at least one bucket");
             nextViableEdge();
         }
 
         EdgeIterator(const EdgeIterator &other)
-                : visited(other.visited), allowedEdges(other.allowedEdges),
-                  undirectedOnly(other.undirectedOnly),
-                  bucketIt(other.bucketIt), endIt(other.endIt),
-                  edgeIt(other.edgeIt) {
+                : visited(other.visited), bucketIt(other.bucketIt),
+                  endIt(other.endIt), edgeIt(other.edgeIt) {
             edgeIt.setVisited(visited);
         }
 
         EdgeIterator(EdgeIterator &&other)
                 : visited(std::move(other.visited)),
-                  allowedEdges(std::move(other.allowedEdges)),
-                  undirectedOnly(std::move(undirectedOnly)),
                   bucketIt(std::move(other.bucketIt)),
                   endIt(std::move(other.endIt)),
                   edgeIt(std::move(other.edgeIt)) {
@@ -343,8 +353,6 @@ class RelationsGraph {
             using std::swap;
 
             swap(lt.visited, rt.visited);
-            swap(lt.allowedEdges, rt.allowedEdges);
-            swap(lt.undirectedOnly, rt.undirectedOnly);
             swap(lt.bucketIt, rt.bucketIt);
             swap(lt.endIt, rt.endIt);
             swap(lt.edgeIt, rt.edgeIt);
@@ -363,8 +371,6 @@ class RelationsGraph {
             nextViableEdge();
             return *this;
         }
-
-        void skipSuccessors() { edgeIt.skipSuccessors(); }
 
         EdgeIterator operator++(int) {
             auto copy = *this;
@@ -414,7 +420,7 @@ class RelationsGraph {
                            bool undirectedOnly = false) const {
         auto startIt = getItFor(start);
         auto endIt = startIt;
-        return iterator(startIt, ++endIt, relations, undirectedOnly);
+        return iterator(startIt, ++endIt, relations, undirectedOnly, true);
     }
 
     iterator begin_related(Bucket &start) const {
@@ -432,7 +438,7 @@ class RelationsGraph {
                    bool undirectedOnly = false) const {
         if (!buckets.empty())
             return iterator(buckets.begin(), buckets.end(), relations,
-                            undirectedOnly);
+                            undirectedOnly, false);
         return end();
     }
 
