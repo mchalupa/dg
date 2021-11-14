@@ -117,8 +117,7 @@ class RelationsAnalyzer {
             const std::vector<const VRLocation *> &changeLocations, V from,
             Relation rel);
     std::vector<const llvm::ICmpInst *> getEQICmp(const VRLocation &join);
-    void inferFromNonEquality(VRLocation &join, V from,
-                              const VectorSet<V> &initial, Shift s,
+    void inferFromNonEquality(VRLocation &join, V from, Shift s,
                               Handle placeholder);
     void
     inferShiftInLoop(const std::vector<const VRLocation *> &changeLocations,
