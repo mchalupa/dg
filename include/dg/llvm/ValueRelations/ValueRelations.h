@@ -295,7 +295,7 @@ struct ValueRelations {
         Relations::Type rel = rels.get();
         set(lt, rel, rt);
         Relations other = rels & Relations().ult().ule().ugt().uge();
-        if (other.any() && other.get() != rel)
+        if (other.any() && !Relations().set(rel).addImplied().has(other.get()))
             set(lt, other.get(), rt);
     }
     template <typename X, typename Y>
