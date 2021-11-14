@@ -214,14 +214,21 @@ add_library(dgllvmvra SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/ValueRelations/StructureAnalyzer.h
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/ValueRelations/ValueRelations.h
 
-	llvm/ValueRelations/ValueRelations.cpp
-	llvm/ValueRelations/RelationsAnalyzer.cpp
 	llvm/ValueRelations/GraphBuilder.cpp
-	llvm/ValueRelations/StructureAnalyzer.cpp
 	llvm/ValueRelations/GraphElements.cpp
+	llvm/ValueRelations/RelationsAnalyzer.cpp
+	llvm/ValueRelations/StructureAnalyzer.cpp
+	llvm/ValueRelations/ValueRelations.cpp
 )
-target_link_libraries(dgllvmvra PUBLIC dgvra)
-# target_link_libraries(dgllvmvra PUBLIC dgvra dganalysis)
+target_link_libraries(dgllvmvra PUBLIC dgvra
+                                PRIVATE dganalysis
+                                # dynamic LLVM
+                                PUBLIC ${llvm}
+                                # static LLVM
+                                PRIVATE ${llvm_analysis}
+                                PRIVATE ${llvm_core}
+                                PRIVATE ${llvm_irreader}
+                                PRIVATE ${llvm_support})
 
 add_library(dgllvmsdg SHARED
 	llvm/SystemDependenceGraph/SystemDependenceGraph.cpp
@@ -229,7 +236,6 @@ add_library(dgllvmsdg SHARED
 
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/SystemDependenceGraph/SystemDependenceGraph.h
 )
-
 target_link_libraries(dgllvmsdg PUBLIC dgsdg
                                 PRIVATE dgllvmdda)
 
