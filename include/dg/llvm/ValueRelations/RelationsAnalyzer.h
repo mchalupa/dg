@@ -59,6 +59,13 @@ class RelationsAnalyzer {
                        const llvm::BinaryOperator *operation);
     void solveCommutativity(ValueRelations &graph,
                             const llvm::BinaryOperator *operation);
+    V getAnyInitial(const VRLocation &join, V from) const;
+    enum class Shift { INC, DEC, EQ, UNKNOWN };
+    static Shift getShift(const llvm::BinaryOperator *op, V from);
+    static Shift getShift(const llvm::GetElementPtrInst *op, V from);
+    static Shift getShift(const llvm::Value *val, V from);
+    Shift getShift(const std::vector<const VRLocation *> &changeLocations,
+                   V from) const;
     bool canShift(const ValueRelations &graph, V param, Relations::Type shift);
     void solveDifferent(ValueRelations &graph, const llvm::BinaryOperator *op);
 
@@ -87,25 +94,20 @@ class RelationsAnalyzer {
     getCommonByPointedTo(V from,
                          const std::vector<const VRLocation *> &changeRelations,
                          V val, Relations rels);
-    static Relations
-    getCommonByPointedTo(V from,
-                         const std::vector<const VRLocation *> &changeLocations,
-                         V firstLoad, V prevVal);
     std::vector<const VRLocation *>
     getBranchChangeLocations(const VRLocation &join, V from) const;
-    std::pair<std::vector<const VRLocation *>, V>
+    std::vector<const VRLocation *>
     getLoopChangeLocations(const VRLocation &join, V form) const;
 
     // get target locations of changing instructions
-    std::pair<std::vector<const VRLocation *>, V>
-    getChangeLocations(const VRLocation &join, V from);
+    std::vector<const VRLocation *> getChangeLocations(const VRLocation &join,
+                                                       V from);
     static std::pair<C, Relations> getBoundOnPointedToValue(
             const std::vector<const VRLocation *> &changeLocations, V from,
             Relation rel);
-    static void
-    relateToFirstLoad(const std::vector<const VRLocation *> &changeLocations,
-                      V from, ValueRelations &newGraph, Handle placeholder,
-                      V firstLoad);
+    void
+    inferShiftInLoop(const std::vector<const VRLocation *> &changeLocations,
+                     V from, ValueRelations &newGraph, Handle placeholder);
     static void
     relateBounds(const std::vector<const VRLocation *> &changeLocations, V from,
                  ValueRelations &newGraph, Handle placeholder);
