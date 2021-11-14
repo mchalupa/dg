@@ -162,63 +162,6 @@ bool RelationsAnalyzer::mayOverwrite(I inst, V address) const {
 }
 
 // ************************ operation helpers ************************* //
-bool RelationsAnalyzer::solvesSameType(ValueRelations &graph,
-                                       const llvm::ConstantInt *c1,
-                                       const llvm::ConstantInt *c2,
-                                       const llvm::BinaryOperator *op) {
-    if (c1 && c2) {
-        llvm::APInt result;
-
-        switch (op->getOpcode()) {
-        case llvm::Instruction::Add:
-            result = c1->getValue() + c2->getValue();
-            break;
-        case llvm::Instruction::Sub:
-            result = c1->getValue() - c2->getValue();
-            break;
-        case llvm::Instruction::Mul:
-            result = c1->getValue() * c2->getValue();
-            break;
-        default:
-            assert(0 && "solvesSameType: shouldn't handle any other operation");
-        }
-        graph.setEqual(op, llvm::ConstantInt::get(c1->getType(), result));
-        return true;
-    }
-
-    llvm::Type *i32 = llvm::Type::getInt32Ty(op->getContext());
-    const llvm::Constant *one = llvm::ConstantInt::getSigned(i32, 1);
-    const llvm::Constant *minusOne = llvm::ConstantInt::getSigned(i32, -1);
-
-    V fst = op->getOperand(0);
-    V snd = op->getOperand(1);
-
-    if (!c1 && !c2) {
-        switch (op->getOpcode()) {
-        case llvm::Instruction::Add:
-            if (graph.isLesserEqual(one, fst))
-                graph.setLesser(snd, op);
-            if (graph.isLesserEqual(one, snd))
-                graph.setLesser(fst, op);
-            if (graph.isLesserEqual(fst, minusOne))
-                graph.setLesser(op, snd);
-            if (graph.isLesserEqual(snd, minusOne))
-                graph.setLesser(op, fst);
-            break;
-        case llvm::Instruction::Sub:
-            if (graph.isLesserEqual(one, snd))
-                graph.setLesser(op, fst);
-            if (graph.isLesserEqual(snd, minusOne))
-                graph.setLesser(fst, op);
-            break;
-        default:
-            break;
-        }
-        return true;
-    }
-    return false;
-}
-
 void RelationsAnalyzer::solvesDiffOne(ValueRelations &graph, V param,
                                       const llvm::BinaryOperator *op,
                                       Relations::Type rel) {
@@ -305,144 +248,86 @@ void RelationsAnalyzer::extGen(ValueRelations &graph,
     graph.setEqual(ext, ext->getOperand(0));
 }
 
-void RelationsAnalyzer::addGen(ValueRelations &graph,
-                               const llvm::BinaryOperator *add) {
-    auto c1 = llvm::dyn_cast<llvm::ConstantInt>(add->getOperand(0));
-    auto c2 = llvm::dyn_cast<llvm::ConstantInt>(add->getOperand(1));
-    // TODO check wheter equal to constant
-
-    solveEquality(graph, add);
-    solveCommutativity(graph, add);
-
-    if (solvesSameType(graph, c1, c2, add))
+void solveNonConstants(ValueRelations &graph,
+                       llvm::Instruction::BinaryOps opcode,
+                       const llvm::BinaryOperator *op) {
+    if (opcode != llvm::Instruction::Sub)
         return;
 
-    V param = nullptr;
-    if (c2) {
-        c1 = c2;
-        param = add->getOperand(0);
-    } else
-        param = add->getOperand(1);
+    const llvm::Constant *zero = llvm::ConstantInt::getSigned(op->getType(), 0);
+    V fst = op->getOperand(0);
+    V snd = op->getOperand(1);
 
-    assert(c1 && add && param);
-    // add = param + c1
-    if (c1->isZero())
-        return graph.setEqual(add, param);
-
-    else if (c1->isNegative()) {
-        // c1 < 0  ==>  param + c1 < param
-        graph.setLesser(add, param);
-
-        // lesser < param  ==>  lesser <= param + (-1)
-        if (c1->isMinusOne())
-            solvesDiffOne(graph, param, add, Relations::SGT);
-
-    } else {
-        // c1 > 0 => param < param + c1
-        graph.setLesser(param, add);
-
-        // param < greater => param + 1 <= greater
-        if (c1->isOne())
-            solvesDiffOne(graph, param, add, Relations::SLT);
-    }
-
-    const llvm::ConstantInt *constBound = graph.getLesserEqualBound(param);
-    if (constBound) {
-        const llvm::APInt &boundResult =
-                constBound->getValue() + c1->getValue();
-        const llvm::Constant *llvmResult =
-                llvm::ConstantInt::get(add->getType(), boundResult);
-        if (graph.isLesser(constBound, param))
-            graph.setLesser(llvmResult, add);
-        else if (graph.isEqual(constBound, param))
-            graph.setEqual(llvmResult, add);
-        else
-            graph.setLesserEqual(llvmResult, add);
-    }
+    if (graph.isLesser(zero, snd) && graph.isLesserEqual(snd, fst))
+        graph.setLesser(op, fst);
 }
 
-void RelationsAnalyzer::subGen(ValueRelations &graph,
-                               const llvm::BinaryOperator *sub) {
-    auto c1 = llvm::dyn_cast<llvm::ConstantInt>(sub->getOperand(0));
-    auto c2 = llvm::dyn_cast<llvm::ConstantInt>(sub->getOperand(1));
-    // TODO check wheter equal to constant
-
-    solveEquality(graph, sub);
-
-    if (solvesSameType(graph, c1, c2, sub))
-        return;
-
-    if (c1) {
-        // TODO collect something here?
-        return;
+std::pair<llvm::Value *, llvm::ConstantInt *>
+getParams(const llvm::BinaryOperator *op) {
+    if (llvm::isa<llvm::ConstantInt>(op->getOperand(0))) {
+        assert(!llvm::isa<llvm::ConstantInt>(op->getOperand(1)));
+        if (op->getOpcode() == llvm::Instruction::Sub)
+            return {nullptr, nullptr};
+        return {op->getOperand(1),
+                llvm::cast<llvm::ConstantInt>(op->getOperand(0))};
     }
-
-    V param = sub->getOperand(0);
-    assert(c2 && sub && param);
-    // sub = param - c1
-    if (c2->isZero())
-        return graph.setEqual(sub, param);
-
-    else if (c2->isNegative()) {
-        // c1 < 0  ==>  param < param - c1
-        graph.setLesser(param, sub);
-
-        // param < greater ==> param - (-1) <= greater
-        if (c2->isMinusOne())
-            solvesDiffOne(graph, param, sub, Relations::SLT);
-
-    } else {
-        // c1 > 0 => param - c1 < param
-        graph.setLesser(sub, param);
-
-        // lesser < param  ==>  lesser <= param - 1
-        if (c2->isOne())
-            solvesDiffOne(graph, param, sub, Relations::SGT);
-    }
-
-    const llvm::ConstantInt *constBound = graph.getLesserEqualBound(param);
-    if (constBound) {
-        const llvm::APInt &boundResult =
-                constBound->getValue() - c2->getValue();
-        const llvm::Constant *llvmResult =
-                llvm::ConstantInt::get(sub->getType(), boundResult);
-
-        if (graph.isLesser(constBound, param))
-            graph.setLesser(llvmResult, sub);
-        else if (graph.isEqual(constBound, param))
-            graph.setEqual(llvmResult, sub);
-        else
-            graph.setLesserEqual(llvmResult, sub);
-    }
+    return {op->getOperand(0),
+            llvm::cast<llvm::ConstantInt>(op->getOperand(1))};
 }
 
-void RelationsAnalyzer::mulGen(ValueRelations &graph,
-                               const llvm::BinaryOperator *mul) {
-    auto c1 = llvm::dyn_cast<llvm::ConstantInt>(mul->getOperand(0));
-    auto c2 = llvm::dyn_cast<llvm::ConstantInt>(mul->getOperand(1));
-    // TODO check wheter equal to constant
-
-    solveEquality(graph, mul);
-    solveCommutativity(graph, mul);
-
-    if (solvesSameType(graph, c1, c2, mul))
-        return;
+void solveDifferent(ValueRelations &graph, const llvm::BinaryOperator *op) {
+    auto opcode = op->getOpcode();
 
     V param = nullptr;
-    if (c2) {
-        c1 = c2;
-        param = mul->getOperand(0);
+    llvm::ConstantInt *c = nullptr;
+    std::tie(param, c) = getParams(op);
+
+    if (!param)
+        return;
+
+    assert(param && c);
+
+    Relations::Type shift;
+    if ((opcode == llvm::Instruction::Add && c->isOne()) ||
+        (opcode == llvm::Instruction::Sub && c->isMinusOne())) {
+        shift = Relations::SLT;
+    } else if ((opcode == llvm::Instruction::Add && c->isMinusOne()) ||
+               (opcode == llvm::Instruction::Sub && c->isOne())) {
+        shift = Relations::SGT;
     } else
-        param = mul->getOperand(1);
+        return;
 
-    assert(c1 && mul && param);
-    // mul = param + c1
-    if (c1->isZero())
-        return graph.setEqual(mul, c1);
-    else if (c1->isOne())
-        return graph.setEqual(mul, param);
+    graph.set(param, shift, op);
 
-    // TODO collect something here?
+    std::vector<V> sample =
+            graph.getDirectlyRelated(param, Relations().set(shift));
+    for (V val : sample)
+        assert(graph.are(param, shift, val));
+
+    for (V val : sample)
+        graph.set(op, Relations::getNonStrict(shift), val);
+}
+
+void RelationsAnalyzer::opGen(ValueRelations &graph,
+                              const llvm::BinaryOperator *op) {
+    auto c1 = llvm::dyn_cast<llvm::ConstantInt>(op->getOperand(0));
+    auto c2 = llvm::dyn_cast<llvm::ConstantInt>(op->getOperand(1));
+    auto opcode = op->getOpcode();
+
+    solveEquality(graph, op);
+    if (opcode == llvm::Instruction::Add || opcode == llvm::Instruction::Mul)
+        solveCommutativity(graph, op);
+
+    if (opcode == llvm::Instruction::Mul)
+        return;
+
+    if (c1 && c2)
+        return;
+
+    if (!c1 && !c2)
+        return solveNonConstants(graph, opcode, op);
+
+    solveDifferent(graph, op);
 }
 
 void RelationsAnalyzer::remGen(ValueRelations &graph,
@@ -803,11 +688,9 @@ void RelationsAnalyzer::processInstruction(ValueRelations &graph, I inst) {
     case llvm::Instruction::SExt: // (S)ZExt should not change value
         return extGen(graph, llvm::dyn_cast<llvm::CastInst>(inst));
     case llvm::Instruction::Add:
-        return addGen(graph, llvm::dyn_cast<llvm::BinaryOperator>(inst));
     case llvm::Instruction::Sub:
-        return subGen(graph, llvm::dyn_cast<llvm::BinaryOperator>(inst));
     case llvm::Instruction::Mul:
-        return mulGen(graph, llvm::dyn_cast<llvm::BinaryOperator>(inst));
+        return opGen(graph, llvm::dyn_cast<llvm::BinaryOperator>(inst));
     case llvm::Instruction::SRem:
     case llvm::Instruction::URem:
         return remGen(graph, llvm::dyn_cast<llvm::BinaryOperator>(inst));

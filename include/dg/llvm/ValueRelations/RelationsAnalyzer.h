@@ -51,9 +51,6 @@ class RelationsAnalyzer {
     bool mayOverwrite(I inst, V address) const;
 
     // ************************ operation helpers ************************* //
-    bool solvesSameType(ValueRelations &graph, const llvm::ConstantInt *c1,
-                        const llvm::ConstantInt *c2,
-                        const llvm::BinaryOperator *op);
     void solvesDiffOne(ValueRelations &graph, V param,
                        const llvm::BinaryOperator *op, Relations::Type rel);
     bool operandsEqual(ValueRelations &graph, I fst, I snd,
@@ -70,9 +67,7 @@ class RelationsAnalyzer {
     void loadGen(ValueRelations &graph, const llvm::LoadInst *load);
     void gepGen(ValueRelations &graph, const llvm::GetElementPtrInst *gep);
     void extGen(ValueRelations &graph, const llvm::CastInst *ext);
-    void addGen(ValueRelations &graph, const llvm::BinaryOperator *add);
-    void subGen(ValueRelations &graph, const llvm::BinaryOperator *sub);
-    void mulGen(ValueRelations &graph, const llvm::BinaryOperator *mul);
+    void opGen(ValueRelations &graph, const llvm::BinaryOperator *op);
     void remGen(ValueRelations &graph, const llvm::BinaryOperator *rem);
     void castGen(ValueRelations &graph, const llvm::CastInst *cast);
 
