@@ -609,31 +609,57 @@ bool RelationsAnalyzer::processPhi(const ValueRelations &oldGraph,
 }
 
 // *********************** merge helpers **************************** //
-Relations RelationsAnalyzer::getCommon(const VRLocation &location, V lt,
-                                       Relations known, V rt) {
-    for (VREdge *predEdge : location.predecessors) {
-        known &= predEdge->source->relations.between(lt, rt);
-        if (!known.any())
-            break;
-    }
-    return known;
-}
-
-void RelationsAnalyzer::checkRelatesInAll(VRLocation &location, V lt,
-                                          Relations known, V rt,
-                                          std::set<V> &setEqual) {
-    if (lt == rt) // would add a bucket for every value, even if not related
-        return;
-
+void RelationsAnalyzer::inferFromPreds(VRLocation &location, Handle lt,
+                                       Relations known, Handle rt) {
+    const ValueRelations &predGraph = location.getTreePredecessor().relations;
     ValueRelations &newGraph = location.relations;
 
-    Relations related = getCommon(location, lt, known, rt);
-    if (!related.any())
-        return;
+    std::set<V> setEqual;
+    for (const auto *ltVal : predGraph.getEqual(lt)) {
+        if (setEqual.find(ltVal) != setEqual.end())
+            continue;
+        for (const auto *rtVal : predGraph.getEqual(rt)) {
+            if (ltVal == rtVal)
+                continue;
 
-    if (related.has(Relation::EQ))
-        setEqual.emplace(rt);
-    newGraph.set(lt, related, rt);
+            Relations related = getCommon(location, ltVal, known, rtVal);
+            if (!related.any())
+                continue;
+
+            if (related.has(Relations::EQ))
+                setEqual.emplace(rtVal);
+            newGraph.set(ltVal, related, rtVal);
+        }
+
+        size_t rtId = predGraph.getBorderId(rt);
+        if (rtId != std::string::npos) {
+            Relations related = getCommon(location, ltVal, known, rtId);
+            if (!related.any())
+                continue;
+
+            newGraph.set(ltVal, related, rtId);
+        }
+    }
+
+    size_t ltId = predGraph.getBorderId(lt);
+    if (ltId != std::string::npos) {
+        for (const auto *rtVal : predGraph.getEqual(rt)) {
+            Relations related = getCommon(location, ltId, known, rtVal);
+            if (!related.any())
+                continue;
+
+            newGraph.set(ltId, related, rtVal);
+        }
+
+        size_t rtId = predGraph.getBorderId(rt);
+        if (rtId != std::string::npos) {
+            Relations related = getCommon(location, ltId, known, rtId);
+            if (!related.any())
+                return;
+
+            newGraph.set(ltId, related, rtId);
+        }
+    }
 }
 
 Relations RelationsAnalyzer::getCommonByPointedTo(
@@ -928,19 +954,11 @@ void RelationsAnalyzer::mergeRelations(VRLocation &location) {
 
     const ValueRelations &predGraph = location.getTreePredecessor().relations;
 
-    std::set<V> setEqual;
     for (const auto &bucketVal : predGraph.getBucketToVals()) {
         for (const auto &related :
              predGraph.getRelated(bucketVal.first, restricted)) {
-            for (V lt : bucketVal.second) {
-                if (setEqual.find(lt) !=
-                    setEqual.end()) // value has already been set equal to other
-                    continue;
-                for (V rt : predGraph.getEqual(related.first)) {
-                    checkRelatesInAll(location, lt, related.second, rt,
-                                      setEqual);
-                }
-            }
+            inferFromPreds(location, bucketVal.first, related.second,
+                           related.first);
         }
     }
 
