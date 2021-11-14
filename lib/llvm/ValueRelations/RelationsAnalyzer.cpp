@@ -62,9 +62,12 @@ RelationsAnalyzer::instructionInvalidates(I inst) const {
     if (mayHaveAlias(graph, memoryPtr) || !hasKnownOrigin(graph, memoryPtr)) {
         // if invalidated memory may have an alias, unset all memory whose
         // origin is unknown since it may be the alias
-        for (const auto &fromsValues : graph.getAllLoads()) {
-            if (!hasKnownOrigin(graph, fromsValues.first[0])) {
-                addAndUnwrapLoads(writtenTo, fromsValues.first[0]);
+        for (auto it = graph.begin_buckets(Relations().pt());
+             it != graph.end_buckets(); ++it) {
+            V anyFrom = graph.getEqual(it->from()).any();
+
+            if (!hasKnownOrigin(graph, anyFrom)) {
+                addAndUnwrapLoads(writtenTo, anyFrom);
             }
         }
     }
@@ -72,9 +75,12 @@ RelationsAnalyzer::instructionInvalidates(I inst) const {
     if (!hasKnownOrigin(graph, memoryPtr)) {
         // if memory does not have a known origin, unset all values which
         // may have an alias, since this memory may be the alias
-        for (const auto &fromsValues : graph.getAllLoads()) {
-            if (mayHaveAlias(graph, fromsValues.first[0]))
-                addAndUnwrapLoads(writtenTo, fromsValues.first[0]);
+        for (auto it = graph.begin_buckets(Relations().pt());
+             it != graph.end_buckets(); ++it) {
+            V anyFrom = graph.getEqual(it->from()).any();
+
+            if (mayHaveAlias(graph, anyFrom))
+                addAndUnwrapLoads(writtenTo, anyFrom);
         }
     }
 
@@ -108,8 +114,9 @@ RelationsAnalyzer::instructionInvalidatesFromGraph(const ValueRelations &graph,
     for (const auto &pair : indirectlyInvalid) {
         if (!pair.first) {
             // add all loads in graph
-            for (auto &fromsValues : graph.getAllLoads())
-                allInvalid.emplace(fromsValues.first[0]);
+            for (auto it = graph.begin_buckets(Relations().pt());
+                 it != graph.end_buckets(); ++it)
+                allInvalid.emplace(graph.getEqual(it->from()).any());
             break;
         }
 
@@ -335,11 +342,14 @@ void RelationsAnalyzer::gepGen(ValueRelations &graph,
     if (gep->hasAllZeroIndices())
         graph.setEqual(gep, gep->getPointerOperand());
 
-    for (auto &fromsValues : graph.getAllLoads()) {
-        for (V from : fromsValues.first) {
+    for (auto it = graph.begin_buckets(Relations().pt());
+         it != graph.end_buckets(); ++it) {
+        for (V from : graph.getEqual(it->from())) {
             if (auto otherGep = llvm::dyn_cast<llvm::GetElementPtrInst>(from)) {
-                if (operandsEqual(graph, gep, otherGep, true))
+                if (operandsEqual(graph, gep, otherGep, true)) {
                     graph.setEqual(gep, otherGep);
+                    return;
+                }
             }
         }
     }
@@ -666,14 +676,14 @@ bool RelationsAnalyzer::loadsSomethingInAll(
 bool RelationsAnalyzer::hasConflictLoad(const std::vector<VRLocation *> &preds,
                                         V from, V val) {
     for (const VRLocation *pred : preds) {
-        for (const auto &fromsValues : pred->relations.getAllLoads()) {
-            auto findFrom = std::find(fromsValues.first.begin(),
-                                      fromsValues.first.end(), from);
-            auto findVal = std::find(fromsValues.second.begin(),
-                                     fromsValues.second.end(), val);
+        const ValueRelations &graph = pred->relations;
+        for (auto it = graph.begin_buckets(Relations().pt());
+             it != graph.end_buckets(); ++it) {
+            auto findFrom = graph.getEqual(it->from()).find(from);
+            auto findVal = graph.getEqual(it->to()).find(val);
 
-            if (findFrom != fromsValues.first.end() &&
-                findVal == fromsValues.second.end())
+            if (findFrom != graph.getEqual(it->from()).end() &&
+                findVal == graph.getEqual(it->to()).end()) // TODO check
                 return true;
         }
     }
@@ -681,7 +691,7 @@ bool RelationsAnalyzer::hasConflictLoad(const std::vector<VRLocation *> &preds,
 }
 
 bool RelationsAnalyzer::anyInvalidated(const std::set<V> &allInvalid,
-                                       const std::vector<V> &froms) {
+                                       const VectorSet<V> &froms) {
     for (auto from : froms) {
         if (allInvalid.find(from) != allInvalid.end())
             return true;
@@ -691,7 +701,7 @@ bool RelationsAnalyzer::anyInvalidated(const std::set<V> &allInvalid,
 
 bool RelationsAnalyzer::isGoodFromForPlaceholder(
         const std::vector<VRLocation *> &preds, V from,
-        const std::vector<V> &values) {
+        const VectorSet<V> &values) {
     if (!loadsSomethingInAll(preds, from))
         return false;
 
@@ -772,34 +782,37 @@ void RelationsAnalyzer::inferChangeInLoop(ValueRelations &thisGraph,
 
 void RelationsAnalyzer::inferFromChangeLocations(ValueRelations &newGraph,
                                                  VRLocation &location) {
-    if (location.isJustLoopJoin()) {
-        VRLocation &treePred = location.getTreePredecessor();
+    if (!location.isJustLoopJoin())
+        return;
 
-        for (auto fromsValues : treePred.relations.getAllLoads()) {
-            for (V from : fromsValues.first) {
-                std::vector<VRLocation *> locationsAfterInvalidating = {
-                        &treePred};
+    VRLocation &treePred = location.getTreePredecessor();
+    ValueRelations &graph = treePred.relations;
 
-                // get all locations which influence value loaded from from
-                for (I invalidating : structure.getInloopValues(location)) {
-                    const ValueRelations &relations =
-                            codeGraph.getVRLocation(invalidating).relations;
-                    auto invalidated = instructionInvalidatesFromGraph(
-                            relations, invalidating);
+    // for (auto fromsValues : treePred.relations.getAllLoads()) {
+    for (auto it = graph.begin_buckets(Relations().pt());
+         it != graph.end_buckets(); ++it) {
+        for (V from : graph.getEqual(it->from())) {
+            std::vector<VRLocation *> locationsAfterInvalidating = {&treePred};
 
-                    if (invalidated.find(from) != invalidated.end()) {
-                        locationsAfterInvalidating.emplace_back(
-                                codeGraph.getVRLocation(invalidating)
-                                        .getSuccLocation(0));
-                    }
+            // get all locations which influence value loaded from from
+            for (I invalidating : structure.getInloopValues(location)) {
+                const ValueRelations &relations =
+                        codeGraph.getVRLocation(invalidating).relations;
+                auto invalidated = instructionInvalidatesFromGraph(
+                        relations, invalidating);
+
+                if (invalidated.find(from) != invalidated.end()) {
+                    locationsAfterInvalidating.emplace_back(
+                            codeGraph.getVRLocation(invalidating)
+                                    .getSuccLocation(0));
                 }
-
-                if (!isGoodFromForPlaceholder(locationsAfterInvalidating, from,
-                                              fromsValues.second))
-                    continue;
-
-                intersectByLoad(locationsAfterInvalidating, from, newGraph);
             }
+
+            if (!isGoodFromForPlaceholder(locationsAfterInvalidating, from,
+                                          graph.getEqual(it->to())))
+                continue;
+
+            intersectByLoad(locationsAfterInvalidating, from, newGraph);
         }
     }
 }
@@ -922,10 +935,11 @@ void RelationsAnalyzer::mergeRelations(VRLocation &location) {
             allInvalid.insert(invalid.begin(), invalid.end());
         }
 
-        for (const auto &fromsValues : predGraph.getAllLoads()) {
-            if (!anyInvalidated(allInvalid, fromsValues.first)) {
-                for (auto from : fromsValues.first) {
-                    for (auto val : fromsValues.second) {
+        for (auto it = predGraph.begin_buckets(Relations().pt());
+             it != predGraph.end_buckets(); ++it) {
+            if (!anyInvalidated(allInvalid, predGraph.getEqual(it->from()))) {
+                for (auto from : predGraph.getEqual(it->from())) {
+                    for (auto val : predGraph.getEqual(it->to())) {
                         thisGraph.setLoad(from, val);
                     }
                 }
@@ -938,10 +952,12 @@ void RelationsAnalyzer::mergeRelationsByLoads(VRLocation &loc) {
     ValueRelations &newGraph = loc.relations;
 
     std::vector<V> froms;
-    for (auto fromsValues : loc.getTreePredecessor().relations.getAllLoads()) {
-        for (auto from : fromsValues.first) {
+    const ValueRelations &predGraph = loc.getTreePredecessor().relations;
+    for (auto it = predGraph.begin_buckets(Relations().pt());
+         it != predGraph.end_buckets(); ++it) {
+        for (auto from : predGraph.getEqual(it->from())) {
             if (isGoodFromForPlaceholder(loc.getPredLocations(), from,
-                                         fromsValues.second))
+                                         predGraph.getEqual(it->to())))
                 froms.emplace_back(from);
         }
     }
@@ -986,16 +1002,18 @@ void RelationsAnalyzer::processInstruction(ValueRelations &graph, I inst) {
 void RelationsAnalyzer::rememberValidated(const ValueRelations &prev,
                                           ValueRelations &graph, I inst) const {
     std::set<V> invalidated = instructionInvalidatesFromGraph(prev, inst);
-    for (auto &fromsValues : graph.getAllLoads()) {
-        for (V from : fromsValues.first) {
-            assert(!fromsValues.second.empty() ||
+    for (auto it = graph.begin_buckets(Relations().pt());
+         it != graph.end_buckets(); ++it) {
+        for (V from : graph.getEqual(it->from())) {
+            assert(!graph.getEqual(it->to()).empty() ||
                    invalidated.find(from) == invalidated.end());
         }
     }
 
-    for (auto &fromsValues : prev.getAllLoads()) {
+    for (auto it = prev.begin_buckets(Relations().pt());
+         it != prev.end_buckets(); ++it) {
         bool validPair = true;
-        for (V from : fromsValues.first) {
+        for (V from : prev.getEqual(it->from())) {
             if (invalidated.find(from) != invalidated.end()) {
                 validPair = false;
                 break;
@@ -1003,8 +1021,8 @@ void RelationsAnalyzer::rememberValidated(const ValueRelations &prev,
         }
         if (!validPair)
             continue;
-        for (V from : fromsValues.first) {
-            for (V to : fromsValues.second) {
+        for (V from : prev.getEqual(it->from())) {
+            for (V to : prev.getEqual(it->to())) {
                 graph.setLoad(from, to);
             }
         }

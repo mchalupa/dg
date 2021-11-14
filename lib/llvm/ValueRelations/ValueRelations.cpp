@@ -148,18 +148,6 @@ VectorSet<ValueRelations::V> ValueRelations::getEqual(V val) const {
     return getEqual(*mH);
 }
 
-std::vector<ValueRelations::V> ValueRelations::getAllRelated(V val) const {
-    std::vector<ValueRelations::V> result;
-    std::transform(begin_related(val, allRelations), end_related(val),
-                   std::back_inserter(result),
-                   [](const auto &pair) { return pair.first; });
-    return result;
-}
-
-std::vector<ValueRelations::V> ValueRelations::getAllValues() const {
-    return std::vector<ValueRelations::V>(begin(), end());
-}
-
 std::vector<ValueRelations::V>
 ValueRelations::getDirectlyRelated(V val, const Relations &rels) const {
     HandlePtr mH = maybeGet(val);
@@ -230,22 +218,6 @@ VectorSet<ValueRelations::V> ValueRelations::getValsByPtr(V from) const {
     if (!toH)
         return {};
     return getEqual(*toH);
-}
-
-std::set<std::pair<std::vector<ValueRelations::V>,
-                   std::vector<ValueRelations::V>>>
-ValueRelations::getAllLoads() const {
-    std::set<std::pair<std::vector<V>, std::vector<V>>> result;
-    for (auto it = begin_buckets(Relations().pt()); it != end_buckets(); ++it) {
-        VectorSet<V> fromValsSet = bucketToVals.find(it->from())->second;
-        std::vector<V> fromVals(fromValsSet.begin(), fromValsSet.end());
-
-        VectorSet<V> toValsSet = bucketToVals.find(it->to())->second;
-        std::vector<V> toVals(toValsSet.begin(), toValsSet.end());
-
-        result.emplace(std::move(fromVals), std::move(toVals));
-    }
-    return result;
 }
 
 // ************************** placeholder ***************************** //
