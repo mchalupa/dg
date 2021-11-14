@@ -67,8 +67,6 @@ class RelationsAnalyzer {
                    V from) const;
     bool canShift(const ValueRelations &graph, V param, Relations::Type shift);
     void solveDifferent(ValueRelations &graph, const llvm::BinaryOperator *op);
-    std::vector<const VREdge *> possibleSources(const llvm::PHINode *phi,
-                                                bool bval) const;
     void inferFromNEPointers(ValueRelations &newGraph,
                              VRAssumeBool *assume) const;
 
@@ -109,7 +107,7 @@ class RelationsAnalyzer {
     static std::pair<C, Relations> getBoundOnPointedToValue(
             const std::vector<const VRLocation *> &changeLocations, V from,
             Relation rel);
-    static const llvm::ICmpInst *getEQICmp(const VRLocation &join);
+    std::vector<const llvm::ICmpInst *> getEQICmp(const VRLocation &join);
     void inferFromNonEquality(VRLocation &join, V from,
                               const VectorSet<V> &initial, Shift s,
                               Handle placeholder);

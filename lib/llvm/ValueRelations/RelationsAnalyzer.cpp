@@ -545,24 +545,6 @@ getParams(const ValueRelations &graph, const llvm::ICmpInst *icmp) {
     return {nullptr, nullptr};
 }
 
-std::vector<const VREdge *>
-RelationsAnalyzer::possibleSources(const llvm::PHINode *phi, bool bval) const {
-    std::vector<const VREdge *> result;
-    for (unsigned i = 0; i < phi->getNumIncomingValues(); ++i) {
-        V val = phi->getIncomingValue(i);
-        const auto *cVal = llvm::dyn_cast<llvm::ConstantInt>(val);
-
-        if (!cVal || (cVal->isOne() && bval) || (cVal->isZero() && !bval)) {
-            const auto *block = phi->getIncomingBlock(i);
-            const VRLocation &end = codeGraph.getVRLocation(
-                    &*std::prev(std::prev(block->end())));
-            assert(end.succsSize() == 1);
-            result.emplace_back(end.getSuccEdge(0));
-        }
-    }
-    return result;
-}
-
 void RelationsAnalyzer::inferFromNEPointers(ValueRelations &newGraph,
                                             VRAssumeBool *assume) const {
     const llvm::ICmpInst *icmp =
@@ -604,7 +586,8 @@ bool RelationsAnalyzer::processPhi(const ValueRelations &oldGraph,
                                    ValueRelations &newGraph,
                                    VRAssumeBool *assume) const {
     const llvm::PHINode *phi = llvm::cast<llvm::PHINode>(assume->getValue());
-    const auto &sources = possibleSources(phi, assume->getAssumption());
+    const auto &sources =
+            structure.possibleSources(phi, assume->getAssumption());
     if (sources.size() != 1)
         return true;
 
@@ -769,24 +752,28 @@ std::pair<V, bool> getCompared(const ValueRelations &graph,
     return {nullptr, false};
 }
 
-const llvm::ICmpInst *RelationsAnalyzer::getEQICmp(const VRLocation &join) {
-    if (join.loopEnds.size() != 1 || !join.loopEnds[0]->op->isAssumeBool())
-        return nullptr;
+std::vector<const llvm::ICmpInst *>
+RelationsAnalyzer::getEQICmp(const VRLocation &join) {
+    std::vector<const llvm::ICmpInst *> result;
+    for (const auto *loopEnd : join.loopEnds) {
+        if (!loopEnd->op->isAssumeBool())
+            return {};
 
-    const auto *assume =
-            static_cast<VRAssumeBool *>(join.loopEnds[0]->op.get());
-    V val = assume->getValue();
+        const auto *assume = static_cast<VRAssumeBool *>(loopEnd->op.get());
+        const auto &icmps = structure.getRelevantConditions(assume);
+        if (icmps.empty())
+            return {};
 
-    if (!llvm::isa<llvm::ICmpInst>(val))
-        return nullptr;
+        for (const auto *icmp : icmps) {
+            Relation rel = ICMPToRel(icmp, assume->getAssumption());
 
-    const auto *icmp = llvm::cast<llvm::ICmpInst>(val);
-    Relations::Type rel = ICMPToRel(icmp, assume->getAssumption());
+            if (rel != Relations::EQ)
+                continue; // TODO check or collect
 
-    if (rel != Relations::EQ)
-        return nullptr;
-
-    return icmp;
+            result.emplace_back(icmp);
+        }
+    }
+    return result;
 }
 
 const llvm::Argument *getArgument(const VectorSet<V> &vals) {
@@ -800,9 +787,10 @@ const llvm::Argument *getArgument(const VectorSet<V> &vals) {
 void RelationsAnalyzer::inferFromNonEquality(VRLocation &join, V from,
                                              const VectorSet<V> &initial,
                                              Shift s, Handle placeholder) {
-    const auto *icmp = getEQICmp(join);
-    if (!icmp)
+    const auto &icmps = getEQICmp(join);
+    if (icmps.size() != 1)
         return;
+    const auto *icmp = icmps[0];
 
     V compared;
     bool direct;
@@ -1080,7 +1068,7 @@ bool RelationsAnalyzer::processAssumeBool(const ValueRelations &oldGraph,
     if (llvm::isa<llvm::ICmpInst>(assume->getValue()))
         return processICMP(oldGraph, newGraph, assume);
     if (llvm::isa<llvm::PHINode>(assume->getValue()))
-        return processPhi(newGraph, assume);
+        return processPhi(oldGraph, newGraph, assume);
     return false; // TODO; probably call
 }
 

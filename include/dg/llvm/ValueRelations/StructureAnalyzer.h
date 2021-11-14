@@ -107,6 +107,11 @@ class StructureAnalyzer {
 
     bool isDefined(VRLocation *loc, const llvm::Value *val) const;
 
+    std::vector<const VREdge *> possibleSources(const llvm::PHINode *phi,
+                                                bool bval) const;
+    std::vector<const llvm::ICmpInst *>
+    getRelevantConditions(const VRAssumeBool *assume) const;
+
     // assumes that location is valid loop start (join of tree and back edges)
     const std::vector<const llvm::Instruction *> &
     getInloopValues(const VRLocation &location) const {

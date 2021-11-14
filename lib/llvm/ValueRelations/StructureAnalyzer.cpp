@@ -722,6 +722,57 @@ bool StructureAnalyzer::isDefined(VRLocation *loc,
     return definedHere.find(val) != definedHere.end();
 }
 
+std::vector<const VREdge *>
+StructureAnalyzer::possibleSources(const llvm::PHINode *phi, bool bval) const {
+    std::vector<const VREdge *> result;
+    for (unsigned i = 0; i < phi->getNumIncomingValues(); ++i) {
+        const llvm::Value *val = phi->getIncomingValue(i);
+        const auto *cVal = llvm::dyn_cast<llvm::ConstantInt>(val);
+
+        if (!cVal || (cVal->isOne() && bval) || (cVal->isZero() && !bval)) {
+            const auto *block = phi->getIncomingBlock(i);
+            const VRLocation &end = codeGraph.getVRLocation(
+                    &*std::prev(std::prev(block->end())));
+            assert(end.succsSize() == 1);
+            result.emplace_back(end.getSuccEdge(0));
+        }
+    }
+    return result;
+}
+
+std::vector<const llvm::ICmpInst *>
+StructureAnalyzer::getRelevantConditions(const VRAssumeBool *assume) const {
+    if (const auto *icmp = llvm::dyn_cast<llvm::ICmpInst>(assume->getValue()))
+        return {icmp};
+
+    const auto *phi = llvm::dyn_cast<llvm::PHINode>(assume->getValue());
+    if (!phi)
+        return {};
+
+    std::vector<const llvm::ICmpInst *> result;
+    std::vector<const llvm::PHINode *> to_process{phi};
+
+    while (!to_process.empty()) {
+        const auto *phi = to_process.back();
+        to_process.pop_back();
+
+        for (const auto *sourceEdge :
+             possibleSources(phi, assume->getAssumption())) {
+            assert(sourceEdge->op->isInstruction());
+            const llvm::Instruction *inst =
+                    static_cast<const VRInstruction *>(sourceEdge->op.get())
+                            ->getInstruction();
+            if (const auto *icmp = llvm::dyn_cast<llvm::ICmpInst>(inst))
+                result.emplace_back(icmp);
+            else if (const auto *phi = llvm::dyn_cast<llvm::PHINode>(inst))
+                to_process.emplace_back(phi);
+            else
+                return {};
+        }
+    }
+    return result;
+}
+
 std::pair<unsigned, const AllocatedArea *>
 StructureAnalyzer::getAllocatedAreaFor(const llvm::Value *ptr) const {
     unsigned i = 0;
