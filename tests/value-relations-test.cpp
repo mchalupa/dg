@@ -1,4 +1,4 @@
-#include "catch.hpp"
+#include <catch2/catch.hpp>
 #include "dg/ValueRelations/RelationsGraph.h"
 #include <iostream>
 #include <sstream>

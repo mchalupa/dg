@@ -209,17 +209,5 @@ target_link_libraries(ptset-benchmark PRIVATE dganalysis dgpta)
 # --------------------------------------------------
 # value-relations-test
 # --------------------------------------------------
-include_directories(${CMAKE_SOURCE_DIR}/include)
-# these tools can access the private headers
-include_directories(${CMAKE_SOURCE_DIR}/lib ${CMAKE_SOURCE_DIR}/tools/include)
-
-
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
 add_catch_test(value-relations-test.cpp)
-target_link_libraries(value-relations-test PRIVATE dganalysis
-                                            PRIVATE dgllvmvra
-                                            PRIVATE ${llvm_core}
-                                            PRIVATE ${llvm_irreader}
-                                            PRIVATE ${llvm_analysis}
-                                            PRIVATE ${llvm_support})
-target_compile_options(value-relations-test PRIVATE -Wall -Wextra -pedantic -g ${COLORS})
+target_link_libraries(value-relations-test PRIVATE dgllvmvra)
