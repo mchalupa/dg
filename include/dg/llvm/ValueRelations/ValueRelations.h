@@ -500,6 +500,8 @@ struct ValueRelations {
     bool holdsAnyRelations() const;
 
 #ifndef NDEBUG
+    void dump(ValueRelations::Handle h, std::ostream &out = std::cerr) const;
+    void dotDump(std::ostream &out = std::cerr) const;
     friend std::ostream &operator<<(std::ostream &out,
                                     const ValueRelations &vr);
 #endif
