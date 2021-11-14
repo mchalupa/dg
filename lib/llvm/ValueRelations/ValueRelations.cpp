@@ -269,8 +269,6 @@ ValueRelations::getCorrespondingBorder(const ValueRelations &other,
         for (auto thisRel : getRelated(arg, otherRel.second.invert())) {
             if (getEqual(thisRel.first).empty() &&
                 !has(thisRel.first, Relations::PF)) {
-                // if (result)
-                //     return nullptr;
                 assert(!result);
                 result = &thisRel.first.get();
             }
@@ -346,16 +344,14 @@ bool ValueRelations::merge(const ValueRelations &other, Relations relations) {
         HandlePtr thisToH = getAndMerge(other, edge.to());
         HandlePtr thisFromH = getCorresponding(other, edge.from());
 
-        if (!thisToH || !thisFromH) {
+        if (!thisToH || !thisFromH ||
+            graph.haveConflictingRelation(*thisFromH, edge.rel(), *thisToH)) {
             noConflict = false;
             continue;
         }
 
-        if (!graph.haveConflictingRelation(*thisFromH, edge.rel(), *thisToH)) {
-            bool ch = graph.addRelation(*thisFromH, edge.rel(), *thisToH);
-            updateChanged(ch);
-        } else
-            noConflict = false;
+        bool ch = graph.addRelation(*thisFromH, edge.rel(), *thisToH);
+        updateChanged(ch);
     }
     return noConflict;
 }
