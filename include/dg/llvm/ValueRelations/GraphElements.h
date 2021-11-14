@@ -2,8 +2,9 @@
 #define DG_LLVM_VALUE_RELATIONS_GRAPH_ELEMENTS_HPP_
 
 #include <cassert>
-#include <iterator>
+#include <queue>
 #include <list>
+
 #include <llvm/IR/Instructions.h>
 
 #include "UniquePtrVector.h"
@@ -221,6 +222,7 @@ struct VRLocation {
 
 struct VRCodeGraph {
     friend struct GB;
+    friend struct VRCodeGraphIterator;
 
     using VRBBlock = UniquePtrVector<VRLocation>;
     using VRBBlockHandle = unsigned;
@@ -228,11 +230,13 @@ struct VRCodeGraph {
     std::vector<VRBBlock> vrblocks;
     unsigned totalLocations = 0;
 
-    std::map<const llvm::Function *, VRLocation *> functionMapping;
+    std::vector<const llvm::Function *> functions;
     std::map<const llvm::BasicBlock *, VRBBlockHandle> blockMapping;
     // VRLocation corresponding to the state of the program BEFORE executing the
     // instruction
     std::map<const llvm::Instruction *, VRLocation *> locationMapping;
+
+    bool categorizedEdges = false;
 
     VRBBlockHandle newVRBBlock() {
         vrblocks.emplace_back();
@@ -261,9 +265,15 @@ struct VRCodeGraph {
         return loc;
     }
 
-    void setEntryLocation(const llvm::Function *f, VRLocation &loc) {
-        functionMapping.emplace(f, &loc);
+    VRLocation &insertAfter(const llvm::BasicBlock *b) {
+        VRBBlockHandle h = getVRBBlockHandle(b);
+        VRBBlockHandle newH = h + 1;
+
+        vrblocks.emplace(vrblocks.begin() + newH);
+        return newVRLocation(newH);
     }
+
+    void addFunction(const llvm::Function *f) { functions.emplace_back(f); }
 
   public:
     VRBBlockHandle getVRBBlockHandle(const llvm::BasicBlock *b) const {
@@ -279,7 +289,7 @@ struct VRCodeGraph {
     }
 
     VRLocation &getEntryLocation(const llvm::Function *f) const {
-        return *functionMapping.at(f);
+        return getVRBBlock(&f->getEntryBlock()).front();
     }
 
     struct VRCodeGraphIterator {
@@ -291,15 +301,32 @@ struct VRCodeGraph {
 
         VRCodeGraphIterator() = default;
         VRCodeGraphIterator(const std::vector<VRBBlock> &c, bool begin)
-                : toBlock(begin ? c.begin() : std::prev(c.end())),
-                  toLocation(begin ? toBlock->begin() : toBlock->end()) {}
+                : // VRCodeGraphIterator(const VRCodeGraph& o):
+                  toBlock(begin ? c.begin() : c.end()), endBlock(c.end()),
+                  toLocation(c.begin()->begin())
+        // functions(f),
+        // vrblocks(b),
+        // owner(o),
+        // visited(b.size()),
+        // queue{
+        // o.getVRBBlockHandle(&o.functions[currentFunction]->getEntryBlock()) },
+        // toLocation(o.vrblocks[queue.front()].begin())
+        {
+            // visited[queue.front()] = true;
+        }
 
         reference operator*() const { return *toLocation; }
         pointer operator->() const { return &operator*(); }
 
         friend bool operator==(const VRCodeGraphIterator &lt,
                                const VRCodeGraphIterator &rt) {
+            if (lt.toBlock == lt.endBlock)
+                return rt.toBlock == rt.endBlock;
+            if (rt.toBlock == rt.endBlock)
+                return false;
             return lt.toLocation == rt.toLocation;
+            // return (lt.toBlock != lt.endBlock || rt.toBlock != rt.endBlock)
+            //    || lt.toLocation == rt.toLocation;
         }
 
         friend bool operator!=(const VRCodeGraphIterator &lt,
@@ -311,12 +338,23 @@ struct VRCodeGraph {
             ++toLocation;
             if (toLocation == toBlock->end()) {
                 ++toBlock;
-                toLocation = toBlock->begin();
-                assert(toLocation != toBlock->end());
+                if (toBlock != endBlock) {
+                    toLocation = toBlock->begin();
+                    assert(toLocation != toBlock->end());
+                }
             }
 
             return *this;
         }
+
+        /*VRCodeGraphIterator& operator++() {
+            ++toLocation;
+
+            if (toLocation == o.vrblocks[queue.front()].end()) {
+                const VRBBlock& block = o.vrblocks[queue.front()].end();
+                for (VREdge* edge : block.back().getSuccLocations())
+            }
+        }*/
 
         VRCodeGraphIterator operator++(int) {
             auto copy = *this;
@@ -325,7 +363,17 @@ struct VRCodeGraph {
         }
 
       private:
+        // const VRCodeGraph& owner;
+        // const std::vector<const llvm::Function*>& functions;
+        // unsigned currentFunction = 0;
+
+        // const std::vector<VRBBlock>& vrblocks;
+        // std::vector<bool> visited;
+
+        // std::queue<VRBBlockHandle> queue;
+
         typename std::vector<VRBBlock>::const_iterator toBlock;
+        typename std::vector<VRBBlock>::const_iterator endBlock;
         typename VRBBlock::iterator toLocation;
     };
 
@@ -337,6 +385,17 @@ struct VRCodeGraph {
     iterator end() const {
         return vrblocks.empty() ? iterator() : iterator(vrblocks, false);
     }
+
+#ifndef NDEBUG
+    void dump() {
+        for (VRBBlock &vr : vrblocks) {
+            for (VRLocation &loc : vr) {
+                loc.dump();
+            }
+            std::cout << std::endl;
+        }
+    }
+#endif
 };
 
 struct VRBBlock {
