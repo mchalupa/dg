@@ -1,5 +1,5 @@
-#ifndef DG_LLVM_VALUE_RELATIONS_GRAPH_BUILDER_HPP_
-#define DG_LLVM_VALUE_RELATIONS_GRAPH_BUILDER_HPP_
+#ifndef DG_LLVM_VALUE_RELATIONS_GRAPH_BUILDER_H_
+#define DG_LLVM_VALUE_RELATIONS_GRAPH_BUILDER_H_
 
 #include "GraphElements.h"
 
@@ -12,8 +12,8 @@ class GraphBuilder {
     const llvm::Module &module;
     VRCodeGraph &codeGraph;
 
-    std::map<const llvm::BasicBlock*, VRLocation*> fronts;
-    std::map<const llvm::BasicBlock*, VRLocation*> backs;
+    std::map<const llvm::BasicBlock *, VRLocation *> fronts;
+    std::map<const llvm::BasicBlock *, VRLocation *> backs;
 
     void buildBlocks(const llvm::Function &function);
 
@@ -37,4 +37,4 @@ class GraphBuilder {
 } // namespace vr
 } // namespace dg
 
-#endif // DG_LLVM_VALUE_RELATIONS_GRAPH_BUILDER_HPP_
+#endif // DG_LLVM_VALUE_RELATIONS_GRAPH_BUILDER_H_

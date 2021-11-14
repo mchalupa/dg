@@ -1,5 +1,5 @@
-#ifndef DG_LLVM_VALUE_RELATION_STRUCTURE_ANALYZER_HPP_
-#define DG_LLVM_VALUE_RELATION_STRUCTURE_ANALYZER_HPP_
+#ifndef DG_LLVM_VALUE_RELATION_STRUCTURE_ANALYZER_H_
+#define DG_LLVM_VALUE_RELATION_STRUCTURE_ANALYZER_H_
 
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instructions.h>
@@ -182,4 +182,4 @@ class StructureAnalyzer {
 } // namespace vr
 } // namespace dg
 
-#endif // DG_LLVM_VALUE_RELATION_STRUCTURE_ANALYZER_HPP_
+#endif // DG_LLVM_VALUE_RELATION_STRUCTURE_ANALYZER_H_

@@ -67,7 +67,7 @@ class UniquePtrVector {
 
       private:
         ContainerIterator it;
-        };
+    };
 
     reference at(size_type pos) const { return *_v.at(pos); }
     reference operator[](size_type pos) const { return *_v[pos]; }
@@ -110,4 +110,4 @@ class UniquePtrVector {
 } // namespace vr
 } // namespace dg
 
-#endif
+#endif // DG_LLVM_VALUE_RELATIONS_UNIQUE_PTR_VECTOR_H_

@@ -712,7 +712,6 @@ void RelationsAnalyzer::mergeRelationsByPointedTo(VRLocation &loc) {
     for (auto it = predGraph.begin_buckets(Relations().pt());
          it != predGraph.end_buckets(); ++it) {
         for (V from : predGraph.getEqual(it->from())) {
-
             std::vector<const ValueRelations *> changeLocations;
             V firstLoad;
             std::tie(changeLocations, firstLoad) =

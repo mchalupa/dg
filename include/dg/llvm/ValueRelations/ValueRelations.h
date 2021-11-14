@@ -252,7 +252,7 @@ struct ValueRelations {
 
     // ***************************** other ******************************** //
     HandlePtr getCorresponding(const ValueRelations &other, Handle otherH,
-                            const VectorSet<V> &otherEqual);
+                               const VectorSet<V> &otherEqual);
     HandlePtr getCorresponding(const ValueRelations &other, Handle otherH);
     HandlePtr getAndMerge(const ValueRelations &other, Handle current);
     void add(V val, Handle h, VectorSet<V> &vals);
@@ -480,7 +480,6 @@ struct ValueRelations {
         changed = false;
         return old;
     }
-    // bool hasChanged() { return changed; }
     bool holdsAnyRelations() const;
 
 #ifndef NDEBUG

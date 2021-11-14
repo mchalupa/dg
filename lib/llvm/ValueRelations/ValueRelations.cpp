@@ -291,8 +291,8 @@ ValueRelations::getCorresponding(const ValueRelations &other, Handle otherH) {
     return getCorresponding(other, otherH, other.getEqual(otherH));
 }
 
-ValueRelations::HandlePtr ValueRelations::getAndMerge(const ValueRelations &other,
-                                                   Handle otherH) {
+ValueRelations::HandlePtr
+ValueRelations::getAndMerge(const ValueRelations &other, Handle otherH) {
     const VectorSet<V> &otherEqual = other.getEqual(otherH);
     HandlePtr thisH = getCorresponding(other, otherH, otherEqual);
 
