@@ -75,7 +75,15 @@ add_library(dgsdg SHARED
 target_link_libraries(dgsdg PUBLIC dgpta
                             PUBLIC dgdda)
 
-install(TARGETS dganalysis dgcda dgpta dgdda dgsdg
+add_library(dgvra SHARED
+	${CMAKE_SOURCE_DIR}/include/dg/ValueRelations/Bucket.h
+	${CMAKE_SOURCE_DIR}/include/dg/ValueRelations/Relations.h
+	${CMAKE_SOURCE_DIR}/include/dg/ValueRelations/RelationsGraph.h
+
+	ValueRelations/Relations.cpp
+)
+
+install(TARGETS dganalysis dgcda dgpta dgdda dgsdg dgvra
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 if (LLVM_DG)
@@ -190,6 +198,7 @@ add_library(dgllvmdg SHARED
 	llvm/DefUse/DefUse.cpp
 	llvm/DefUse/DefUse.h
 )
+
 target_link_libraries(dgllvmdg
 			PUBLIC dgllvmpta
 			PUBLIC dgllvmdda
@@ -197,17 +206,31 @@ target_link_libraries(dgllvmdg
 			PUBLIC dgllvmcda
 			INTERFACE ${llvm_analysis}) # only for static LLVM
 
+add_library(dgllvmvra SHARED
+	${CMAKE_SOURCE_DIR}/include/dg/llvm/ValueRelations/getValName.h
+	${CMAKE_SOURCE_DIR}/include/dg/llvm/ValueRelations/GraphBuilder.h
+	${CMAKE_SOURCE_DIR}/include/dg/llvm/ValueRelations/GraphElements.h
+	${CMAKE_SOURCE_DIR}/include/dg/llvm/ValueRelations/RelationsAnalyzer.h
+	${CMAKE_SOURCE_DIR}/include/dg/llvm/ValueRelations/StructureAnalyzer.h
+	${CMAKE_SOURCE_DIR}/include/dg/llvm/ValueRelations/ValueRelations.h
+	${CMAKE_SOURCE_DIR}/include/dg/llvm/ValueRelations/VR.h
+
+	llvm/ValueRelations/VR.cpp
+)
+target_link_libraries(dgllvmvra PUBLIC dgvra)
+
 add_library(dgllvmsdg SHARED
 	llvm/SystemDependenceGraph/SystemDependenceGraph.cpp
 	llvm/SystemDependenceGraph/Dependencies.cpp
 
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/SystemDependenceGraph/SystemDependenceGraph.h
 )
+
 target_link_libraries(dgllvmsdg PUBLIC dgsdg
                                 PRIVATE dgllvmdda)
 
 install(TARGETS dgllvmdg dgllvmthreadregions dgllvmcda
-                dgllvmpta dgllvmdda dgllvmforkjoin dgllvmsdg
+                dgllvmpta dgllvmdda dgllvmforkjoin dgllvmsdg dgllvmvra
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 endif(LLVM_DG)

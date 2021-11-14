@@ -11,7 +11,7 @@
 #include <iostream>
 #endif
 
-#include "RelationsGraph.h"
+#include "dg/ValueRelations/RelationsGraph.h"
 
 namespace dg {
 namespace vr {

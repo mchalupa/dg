@@ -27,6 +27,7 @@
 
 #undef NDEBUG // we need dump methods
 #include "dg/llvm/ValueRelations/GraphBuilder.h"
+#include "dg/llvm/ValueRelations/GraphElements.h"
 #include "dg/llvm/ValueRelations/RelationsAnalyzer.h"
 #include "dg/llvm/ValueRelations/StructureAnalyzer.h"
 #include "dg/llvm/ValueRelations/getValName.h"
@@ -95,7 +96,6 @@ int main(int argc, char *argv[]) {
     tm.report("INFO: Value Relations analysis took");
     std::cerr << "INFO: The analysis made " << num_iter << " passes."
               << std::endl;
-
     std::cerr << std::endl;
 
     if (todot) {
