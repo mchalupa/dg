@@ -222,13 +222,7 @@ add_library(dgllvmvra SHARED
 )
 target_link_libraries(dgllvmvra PUBLIC dgvra
                                 PRIVATE dganalysis
-                                # dynamic LLVM
-                                PUBLIC ${llvm}
-                                # static LLVM
-                                PRIVATE ${llvm_analysis}
-                                PRIVATE ${llvm_core}
-                                PRIVATE ${llvm_irreader}
-                                PRIVATE ${llvm_support})
+								PUBLIC ${llvm}) # only for shared LLVM
 
 add_library(dgllvmsdg SHARED
 	llvm/SystemDependenceGraph/SystemDependenceGraph.cpp
