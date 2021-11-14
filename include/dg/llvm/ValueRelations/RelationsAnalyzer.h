@@ -106,7 +106,7 @@ class RelationsAnalyzer {
     bool anyInvalidated(const std::set<V> &allInvalid,
                         const std::vector<V> &froms);
     bool isGoodFromForPlaceholder(const std::vector<VRLocation *> &preds,
-                                  V from, const std::vector<V> values);
+                                  V from, const std::vector<V> &values);
     void inferChangeInLoop(ValueRelations &newGraph,
                            const std::vector<V> &froms, VRLocation &location);
     void inferFromChangeLocations(ValueRelations &newGraph,
@@ -124,8 +124,6 @@ class RelationsAnalyzer {
     // **************************** merge ******************************* //
     void mergeRelations(VRLocation &location);
     void mergeRelationsByLoads(VRLocation &location);
-    void mergeRelationsByLoads(const std::vector<VRLocation *> &preds,
-                               VRLocation &location);
 
     // ***************************** edge ******************************* //
     void processInstruction(ValueRelations &graph, I inst);
