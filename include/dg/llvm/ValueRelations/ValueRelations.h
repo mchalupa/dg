@@ -406,9 +406,14 @@ struct ValueRelations {
     std::vector<V> getAllRelated(V val) const;
     template <typename X>
     RelGraph::RelationsMap getAllRelated(const X &val) const {
+        return getRelated(val, allRelations);
+    }
+    template <typename X>
+    RelGraph::RelationsMap getRelated(const X &val,
+                                      const Relations &rels) const {
         HandlePtr mH = maybeGet(val);
         assert(mH);
-        return graph.getRelated(*mH, allRelations);
+        return graph.getRelated(*mH, rels);
     }
     std::vector<V> getAllValues() const;
 
