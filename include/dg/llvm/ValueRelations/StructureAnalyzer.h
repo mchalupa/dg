@@ -56,11 +56,14 @@ struct CallRelation {
     VRLocation *callSite = nullptr;
 };
 
-/* arg is left of rel */
 struct Precondition {
-    const llvm::Value *arg;
+    const llvm::Argument *arg;
     Relations::Type rel;
     const llvm::Value *val;
+
+    Precondition(const llvm::Argument *a, Relations::Type r,
+                 const llvm::Value *v)
+            : arg(a), rel(r), val(v) {}
 };
 
 class StructureAnalyzer {
@@ -86,7 +89,8 @@ class StructureAnalyzer {
     std::map<const llvm::Function *, std::vector<CallRelation>>
             callRelationsMap;
 
-    std::map<const llvm::Function *, VectorSet<Precondition>> preconditionsMap;
+    std::map<const llvm::Function *, std::vector<Precondition>>
+            preconditionsMap;
 
     void categorizeEdges();
 
@@ -171,12 +175,12 @@ class StructureAnalyzer {
     const std::vector<CallRelation> &
     getCallRelationsFor(const llvm::Instruction *inst) const;
 
-    void addPrecondition(const llvm::Function *func, const llvm::Value *lt,
+    void addPrecondition(const llvm::Function *func, const llvm::Argument *lt,
                          Relations::Type rel, const llvm::Value *rt);
 
     bool hasPreconditions(const llvm::Function *func) const;
 
-    const VectorSet<Precondition> &
+    const std::vector<Precondition> &
     getPreconditionsFor(const llvm::Function *func) const;
 };
 
