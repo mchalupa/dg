@@ -335,14 +335,14 @@ Bucket::BucketSet getIntersectingNonstrict(const RelationsGraph &graph,
     return other;
 }
 
-void RelationsGraph::addRelation(const Bucket &lt, Relations::Type type,
+bool RelationsGraph::addRelation(const Bucket &lt, Relations::Type type,
                                  const Bucket &rt, Relations *maybeBetween) {
     Bucket &mLt = const_cast<Bucket &>(lt);
     Bucket &mRt = const_cast<Bucket &>(rt);
 
     Relations between = fromMaybeBetween(*this, lt, rt, maybeBetween);
     if (areRelated(lt, type, rt, &between))
-        return;
+        return false;
     assert(!haveConflictingRelation(lt, type, rt, &between));
 
     switch (type) {
@@ -352,37 +352,56 @@ void RelationsGraph::addRelation(const Bucket &lt, Relations::Type type,
                         rt.getRelated(Relations::PT));
         }
         return setEqual(mLt, mRt);
-    case Relations::NE: {
+
+    case Relations::NE:
         for (Relations::Type rel : {Relations::LT, Relations::GT}) {
             if (areRelated(lt, getNonStrict(rel), rt, &between)) {
                 unsetRelated(mLt, getNonStrict(rel), mRt);
                 return addRelation(lt, rel, rt, &between);
             }
-            if (areRelated(lt, Relations::GE, rt, &between)) {
-                Bucket::BucketSet intersect =
-                        getIntersectingNonstrict(*this, lt, rt);
-                assert(intersect.size() >= 2);
-                Bucket &first = *intersect.begin();
-                for (auto it = std::next(intersect.begin());
-                     it != intersect.end(); ++it)
-                    setEqual(first, *it);
-                return;
-            }
-            break; // jump after switch
-        case Relations::PT:
-            if (lt.hasRelation(type))
-                return addRelation(lt.getRelated(type), Relations::EQ, rt);
-            break; // jump after switch
-        case Relations::GT:
-        case Relations::GE:
-        case Relations::PF: {
-            between.invert();
-            return addRelation(rt, Relations::inverted(type), lt, &between);
         }
+        break; // jump after switch
+
+    case Relations::LT:
+        if (areRelated(lt, Relations::LE, rt, &between))
+            unsetRelated(mLt, Relations::LE, mRt);
+        break; // jump after switch
+
+    case Relations::LE:
+        if (areRelated(lt, Relations::NE, rt, &between)) {
+            unsetRelated(mLt, Relations::NE, mRt);
+            return addRelation(lt, Relations::LT, rt, &between);
         }
+        if (areRelated(lt, Relations::GE, rt, &between)) {
+            Bucket::BucketSet intersect =
+                    getIntersectingNonstrict(*this, lt, rt);
+            assert(intersect.size() >= 2);
+            Bucket &first = *intersect.begin();
+            for (auto it = std::next(intersect.begin()); it != intersect.end();
+                 ++it)
+                setEqual(first, *it);
+            return true;
+        }
+        break; // jump after switch
+
+    case Relations::PT:
+        if (lt.hasRelation(type))
+            return addRelation(lt.getRelated(type), Relations::EQ, rt);
+        break; // jump after switch
+
+    case Relations::GT:
+    case Relations::GE:
+    case Relations::PF: {
+        between.invert();
+        return addRelation(rt, Relations::inverted(type), lt, &between);
     }
-        setRelated(mLt, type, mRt);
     }
+    setRelated(mLt, type, mRt);
+    return true;
+}
+
+} // vr
+} // dg
 
 } // namespace vr
 } // namespace dg

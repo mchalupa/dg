@@ -53,11 +53,11 @@ void checkEdges(const RelationsGraph &graph, size_t relationsSet) {
     SECTION("all") {
         CollectedEdges result =
                 collect(graph.begin(allRelations, false), graph.end());
-        checkSize(result, graph, relationsSet * 2 + graph.getBuckets().size());
+        checkSize(result, graph, relationsSet * 2 + graph.size());
     }
     SECTION("undirected") {
         CollectedEdges result = collect(graph.begin(), graph.end());
-        checkSize(result, graph, relationsSet + graph.getBuckets().size());
+        checkSize(result, graph, relationsSet + graph.size());
     }
 }
 
