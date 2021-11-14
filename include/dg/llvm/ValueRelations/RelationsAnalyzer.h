@@ -67,6 +67,8 @@ class RelationsAnalyzer {
                    V from) const;
     bool canShift(const ValueRelations &graph, V param, Relations::Type shift);
     void solveDifferent(ValueRelations &graph, const llvm::BinaryOperator *op);
+    std::vector<const VREdge *> possibleSources(const llvm::PHINode *phi,
+                                                bool bval) const;
     void inferFromNEPointers(ValueRelations &newGraph,
                              VRAssumeBool *assume) const;
 
@@ -84,7 +86,8 @@ class RelationsAnalyzer {
     static Relation ICMPToRel(const llvm::ICmpInst *icmp, bool assumption);
     static bool processICMP(const ValueRelations &oldGraph,
                             ValueRelations &newGraph, VRAssumeBool *assume);
-    bool processPhi(ValueRelations &newGraph, VRAssumeBool *assume) const;
+    bool processPhi(const ValueRelations &oldGraph, ValueRelations &newGraph,
+                    VRAssumeBool *assume) const;
 
     // *********************** merge helpers **************************** //
     static Relations getCommon(const VRLocation &location, V lt,
