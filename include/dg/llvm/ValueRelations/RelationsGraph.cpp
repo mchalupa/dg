@@ -117,6 +117,38 @@ bool Relations::transitiveOver(Type fst, Type snd) {
     abort();
 }
 
+bool Relations::isStrict(Type type) {
+    return type == Relations::LT || type == Relations::GT;
+}
+
+bool Relations::isNonStrict(Type type) {
+    return type == Relations::LE || type == Relations::GE;
+}
+
+Relations::Type Relations::getStrict(Type type) {
+    switch (type) {
+    case Relations::LE:
+        return Relations::LT;
+    case Relations::GE:
+        return Relations::GT;
+    default:
+        assert(0 && "no strict variant");
+        abort();
+    }
+}
+
+Relations::Type Relations::getNonStrict(Type type) {
+    switch (type) {
+    case Relations::LT:
+        return Relations::LE;
+    case Relations::GT:
+        return Relations::GE;
+    default:
+        assert(0 && "no nonstrict variant");
+        abort();
+    }
+}
+
 #ifndef NDEBUG
 std::ostream &operator<<(std::ostream &out, Relations::Type r) {
     switch (r) {
@@ -161,28 +193,12 @@ std::ostream &operator<<(std::ostream &out, const Relations &rels) {
 
 using RelationsMap = RelationsGraph::RelationsMap;
 
-bool strict(Relations::Type type) {
-    return type == Relations::LT || type == Relations::GT;
-}
-
-Relations::Type getNonStrict(Relations::Type type) {
-    switch (type) {
-    case Relations::LT:
-        return Relations::LE;
-    case Relations::GT:
-        return Relations::GE;
-    default:
-        assert(0 && "no nonstrict variant");
-        abort();
-    }
-}
-
 Relations getAugmented(const Relations &relations) {
     Relations augmented = relations;
     for (Relations::Type type : {Relations::LT, Relations::GT}) {
         if (augmented.has(type)) {
-            augmented.set(getNonStrict(type));
-        } else if (augmented.has(getNonStrict(type))) {
+            augmented.set(Relations::getNonStrict(type));
+        } else if (augmented.has(Relations::getNonStrict(type))) {
             augmented.set(type);
             augmented.eq();
         }
@@ -214,7 +230,7 @@ bool processEdge(const Bucket::RelationEdge &edge, Relations::Type strictRel,
     bool targetOfFSE = updated.has(strictRel); // FSE = first strict edge
 
     if (!targetOfFSE) {
-        updated.set(getNonStrict(strictRel), false);
+        updated.set(Relations::getNonStrict(strictRel), false);
         return false;
     }
 
@@ -223,7 +239,7 @@ bool processEdge(const Bucket::RelationEdge &edge, Relations::Type strictRel,
 
     if (thisIsFSE) { // strict relation set by false first strict
         updated.set(strictRel, false);
-        updated.set(getNonStrict(strictRel), false);
+        updated.set(Relations::getNonStrict(strictRel), false);
     }
     return true; // skip because search will happen from target sooner or later
 }
@@ -240,7 +256,7 @@ RelationsMap getAugmentedRelated(const RelationsGraph &graph,
          /*incremented in body */) {
         result[it->to()].set(it->rel());
 
-        if (strict(it->rel())) {
+        if (Relations::isStrict(it->rel())) {
             firstStrictEdges.emplace(*it);
             it.skipSuccessors();
         } else
@@ -352,6 +368,20 @@ bool RelationsGraph::addRelation(const Bucket &lt, Relations::Type type,
                         rt.getRelated(Relations::PT));
         }
         return setEqual(mLt, mRt);
+
+    case Relations::NE:
+        for (Relations::Type rel : {Relations::LT, Relations::GT}) {
+            if (areRelated(lt, Relations::getNonStrict(rel), rt, &between)) {
+                unsetRelated(mLt, Relations::getNonStrict(rel), mRt);
+                return addRelation(lt, rel, rt, &between);
+            }
+        }
+        break; // jump after switch
+
+    case Relations::LT:
+        if (areRelated(lt, Relations::LE, rt, &between))
+            unsetRelated(mLt, Relations::LE, mRt);
+        break; // jump after switch
 
     case Relations::NE:
         for (Relations::Type rel : {Relations::LT, Relations::GT}) {
