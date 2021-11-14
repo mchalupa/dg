@@ -252,19 +252,21 @@ bool ValueRelations::holdsAnyRelations() const {
     return !valToBucket.empty() && !graph.empty();
 }
 
-ValueRelations::Handle
+ValueRelations::HandlePtr
 ValueRelations::getCorresponding(const ValueRelations &other, Handle otherH,
                                  const VectorSet<V> &otherEqual) {
     if (otherEqual.empty()) { // other is a placeholder bucket, therefore it is
                               // pointed to from other bucket
         assert(otherH.hasRelation(Relations::PF));
         Handle otherFromH = otherH.getRelated(Relations::PF);
-        Handle thisFromH = getCorresponding(other, otherFromH);
+        HandlePtr thisFromH = getCorresponding(other, otherFromH);
+        if (!thisFromH)
+            return nullptr;
 
-        Handle h = newPlaceholderBucket(thisFromH);
-        bool ch = graph.addRelation(thisFromH, Relations::PT, h);
+        Handle h = newPlaceholderBucket(*thisFromH);
+        bool ch = graph.addRelation(*thisFromH, Relations::PT, h);
         updateChanged(ch);
-        return h;
+        return &h;
     }
 
     // otherwise find unique handle for all equal elements from other
@@ -274,26 +276,31 @@ ValueRelations::getCorresponding(const ValueRelations &other, Handle otherH,
         if (!mH) // first handle found
             mH = oH;
         else if (oH && oH != mH) { // found non-equal handle in this
+            if (hasConflictingRelation(*oH, *mH, Relations::EQ))
+                return nullptr;
             set(*oH, Relations::EQ, *mH);
             mH = maybeGet(val); // update possibly invalidated handle
             assert(mH);
         }
     }
-    return mH ? *mH : add(otherEqual.any(), graph.getNewBucket()).first.get();
+    return mH ? mH : &add(otherEqual.any(), graph.getNewBucket()).first.get();
 }
 
-ValueRelations::Handle
+ValueRelations::HandlePtr
 ValueRelations::getCorresponding(const ValueRelations &other, Handle otherH) {
     return getCorresponding(other, otherH, other.getEqual(otherH));
 }
 
-ValueRelations::Handle ValueRelations::getAndMerge(const ValueRelations &other,
+ValueRelations::HandlePtr ValueRelations::getAndMerge(const ValueRelations &other,
                                                    Handle otherH) {
     const VectorSet<V> &otherEqual = other.getEqual(otherH);
-    Handle thisH = getCorresponding(other, otherH, otherEqual);
+    HandlePtr thisH = getCorresponding(other, otherH, otherEqual);
+
+    if (!thisH)
+        return nullptr;
 
     for (V val : otherEqual)
-        add(val, thisH);
+        add(val, *thisH);
 
     return thisH;
 }
@@ -305,11 +312,16 @@ bool ValueRelations::merge(const ValueRelations &other, Relations relations) {
             (edge.rel() == Relations::EQ && !other.hasEqual(edge.to())))
             continue;
 
-        Handle thisToH = getAndMerge(other, edge.to());
-        Handle thisFromH = getCorresponding(other, edge.from());
+        HandlePtr thisToH = getAndMerge(other, edge.to());
+        HandlePtr thisFromH = getCorresponding(other, edge.from());
 
-        if (!graph.haveConflictingRelation(thisFromH, edge.rel(), thisToH)) {
-            bool ch = graph.addRelation(thisFromH, edge.rel(), thisToH);
+        if (!thisToH || !thisFromH) {
+            noConflict = false;
+            continue;
+        }
+
+        if (!graph.haveConflictingRelation(*thisFromH, edge.rel(), *thisToH)) {
+            bool ch = graph.addRelation(*thisFromH, edge.rel(), *thisToH);
             updateChanged(ch);
         } else
             noConflict = false;

@@ -251,10 +251,10 @@ struct ValueRelations {
     };
 
     // ***************************** other ******************************** //
-    Handle getCorresponding(const ValueRelations &other, Handle otherH,
+    HandlePtr getCorresponding(const ValueRelations &other, Handle otherH,
                             const VectorSet<V> &otherEqual);
-    Handle getCorresponding(const ValueRelations &other, Handle otherH);
-    Handle getAndMerge(const ValueRelations &other, Handle current);
+    HandlePtr getCorresponding(const ValueRelations &other, Handle otherH);
+    HandlePtr getAndMerge(const ValueRelations &other, Handle current);
     void add(V val, Handle h, VectorSet<V> &vals);
     std::pair<BRef, bool> add(V val, Handle h);
     void areMerged(Handle to, Handle from);
