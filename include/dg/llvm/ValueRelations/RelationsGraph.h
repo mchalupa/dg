@@ -76,9 +76,78 @@ const Relations allRelations(~0);
 std::ostream &operator<<(std::ostream &out, Relations::Type r);
 #endif
 
-class Bucket {
-  public:
+struct Bucket {
     using BucketSet = std::set<std::reference_wrapper<Bucket>>;
+    const size_t id;
+
+    class RelationEdge {
+        using SetIterator = typename BucketSet::iterator;
+        using RelationIterator = decltype(Relations::all)::const_iterator;
+
+        BucketSet &relationSet() const {
+            return bucket.relatedBuckets[*relationIt];
+        }
+
+        // purely for placement in set
+        friend bool operator<(const RelationEdge &lt, const RelationEdge &rt) {
+            if (lt.bucket != rt.bucket)
+                return lt.bucket < rt.bucket;
+            if (*lt.relationIt != *rt.relationIt)
+                return *lt.relationIt < *rt.relationIt;
+            return *lt.bucketIt < *rt.bucketIt;
+        }
+
+        Bucket &bucket;
+        RelationIterator relationIt;
+        SetIterator bucketIt;
+
+      public:
+        RelationEdge(Bucket &b)
+                : bucket(b), relationIt(Relations::all.begin()),
+                  bucketIt(relationSet().begin()) {}
+
+        Bucket &from() { return bucket; }
+        Relations::Type rel() const { return *relationIt; }
+        Bucket &to() { return *bucketIt; }
+
+        bool nextViableEdge() {
+            while (bucketIt == relationSet().end()) {
+                ++relationIt;
+                if (relationIt == Relations::all.end())
+                    return false;
+                bucketIt = relationSet().begin();
+            }
+            return true;
+        }
+
+        RelationEdge &operator++() {
+            ++bucketIt;
+            return *this;
+        }
+        RelationEdge operator++(int) {
+            auto copy = *this;
+            ++*this;
+            return copy;
+        }
+
+        friend bool operator==(const RelationEdge &lt, const RelationEdge &rt) {
+            return lt.bucket == rt.bucket && *lt.relationIt == *rt.relationIt &&
+                   *lt.bucketIt == *rt.bucketIt;
+        }
+
+        friend bool operator!=(const RelationEdge &lt, const RelationEdge &rt) {
+            return !(lt == rt);
+        }
+
+#ifndef NDEBUG
+        friend std::ostream &operator<<(std::ostream &out,
+                                        const RelationEdge &edge) {
+            auto nEdge = const_cast<RelationEdge &>(edge);
+            out << nEdge.from().id << " " << edge.rel() << " " << nEdge.to().id;
+            return out;
+        }
+#endif
+    };
 
   private:
     // R -> { a } such that (this, a) \in R (e.g. LE -> { a } such that this LE
@@ -91,8 +160,6 @@ class Bucket {
     }
 
   public:
-    const size_t id;
-
     Bucket(size_t i) : id(i) {}
 
     void merge(const Bucket &other) {
@@ -154,68 +221,8 @@ class Bucket {
     }
 
     /********************** begin iterator stuff *********************/
-    class RelationEdge {
-        template <typename V>
-        friend class EdgeIterator;
 
-        using SetIterator = typename BucketSet::iterator;
-        using RelationIterator = decltype(Relations::all)::const_iterator;
-
-        friend class EdgeIterator;
-
-        BucketSet &relSet() const { return bucket.relatedBuckets[*relationIt]; }
-
-        // purely for placement in set
-        friend bool operator<(const RelationEdge &lt, const RelationEdge &rt) {
-            if (lt.bucket != rt.bucket)
-                return lt.bucket < rt.bucket;
-            if (*lt.relationIt != *rt.relationIt)
-                return *lt.relationIt < *rt.relationIt;
-            return *lt.bucketIt < *rt.bucketIt;
-        }
-
-      public:
-        Bucket &bucket;
-        RelationIterator relationIt;
-        SetIterator bucketIt;
-
-        RelationEdge(Bucket &b)
-                : bucket(b), relationIt(Relations::all.begin()),
-                  bucketIt(relSet().begin()) {}
-
-        bool nextViableEdge() {
-            while (bucketIt == relSet().end()) {
-                ++relationIt;
-                if (relationIt == Relations::all.end())
-                    return false;
-                bucketIt = relSet().begin();
-            }
-            return true;
-        }
-
-        Bucket &from() { return bucket; }
-        Relations::Type rel() const { return *relationIt; }
-        Bucket &to() { return *bucketIt; }
-
-        friend bool operator==(const RelationEdge &lt, const RelationEdge &rt) {
-            return lt.bucket == rt.bucket && *lt.relationIt == *rt.relationIt &&
-                   *lt.bucketIt == *rt.bucketIt;
-        }
-
-        friend bool operator!=(const RelationEdge &lt, const RelationEdge &rt) {
-            return !(lt == rt);
-        }
-
-#ifndef NDEBUG
-        friend std::ostream &operator<<(std::ostream &out,
-                                        const RelationEdge &edge) {
-            auto nEdge = const_cast<RelationEdge &>(edge);
-            out << nEdge.from().id << " " << edge.rel() << " " << nEdge.to().id;
-            return out;
-        }
-#endif
-    };
-
+  private:
     class EdgeIterator {
         std::vector<RelationEdge> stack;
         std::reference_wrapper<BucketSet> visited;
@@ -248,7 +255,7 @@ class Bucket {
                     (!undirectedOnly || !isInvertedEdge()) &&
                     (!relationsFocused || shouldFollowThrough()))
                     return true;
-                ++stack.back().bucketIt;
+                ++stack.back();
             }
             return false;
         }
@@ -280,7 +287,6 @@ class Bucket {
         friend bool operator==(const EdgeIterator &lt, const EdgeIterator &rt) {
             return lt.stack == rt.stack;
         }
-
         friend bool operator!=(const EdgeIterator &lt, const EdgeIterator &rt) {
             return !(lt == rt);
         }
@@ -292,7 +298,7 @@ class Bucket {
             Bucket &to = current.to();
 
             // plan return to next successor of "from" bucket
-            ++current.bucketIt;
+            ++current;
             stack.emplace_back(current);
 
             // plan visit to first successor of "to" bucket if unexplored so far
@@ -311,7 +317,7 @@ class Bucket {
         }
 
         EdgeIterator &skipSuccessors() {
-            ++stack.back().bucketIt;
+            ++stack.back();
             nextViableEdge();
             return *this;
         }
@@ -330,17 +336,20 @@ class Bucket {
         const RelationEdge *operator->() const { return &stack.back(); }
     };
 
-    EdgeIterator begin(BucketSet &visited, const Relations &relations,
-                       bool undirectedOnly, bool relationsFocused) {
-        return EdgeIterator(*this, visited, relations, undirectedOnly,
-                            relationsFocused);
+  public:
+    using iterator = EdgeIterator;
+
+    iterator begin(BucketSet &visited, const Relations &relations,
+                   bool undirectedOnly, bool relationsFocused) {
+        return iterator(*this, visited, relations, undirectedOnly,
+                        relationsFocused);
     }
 
-    EdgeIterator begin(BucketSet &visited) {
+    iterator begin(BucketSet &visited) {
         return begin(visited, allRelations, true, true);
     }
 
-    EdgeIterator end(BucketSet &visited) { return EdgeIterator(visited); }
+    iterator end(BucketSet &visited) { return iterator(visited); }
 
     /*********************** end iterator stuff **********************/
 
@@ -372,7 +381,7 @@ class RelationsGraph {
 
         BucketIterator bucketIt;
         BucketIterator endIt;
-        Bucket::EdgeIterator edgeIt;
+        Bucket::iterator edgeIt;
 
         void nextViableEdge() {
             while (edgeIt == (*bucketIt)->end(visited)) {
