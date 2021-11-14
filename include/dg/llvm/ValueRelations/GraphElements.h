@@ -143,6 +143,8 @@ struct VRLocation {
     std::vector<VREdge *> predecessors;
     std::vector<std::unique_ptr<VREdge>> successors;
 
+    std::vector<const VREdge *> loopEnds;
+
     VRLocation(unsigned _id) : id(_id) {}
 
     void connect(std::unique_ptr<VREdge> &&edge);

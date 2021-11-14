@@ -96,6 +96,12 @@ void dumpEdges(const VRCodeGraph &codeGraph) {
 #endif
             std::cout << "\", color=" << edgeTypeToColor(succ->type) << "];\n";
         }
+
+        if (loc.isJustLoopJoin()) {
+            for (auto e : loc.loopEnds) {
+                std::cout << edge(loc, *e->target) << " [color=magenta];\n";
+            }
+        }
     }
 }
 
