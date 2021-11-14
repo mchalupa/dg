@@ -104,8 +104,8 @@ VRLocation &VRCodeGraph::getVRLocation(const llvm::Instruction *ptr) const {
     return *locationMapping.at(ptr);
 }
 
-VRLocation &VRCodeGraph::getEntryLocation(const llvm::Function *f) const {
-    return *functionMapping.at(f);
+VRLocation &VRCodeGraph::getEntryLocation(const llvm::Function &f) const {
+    return *functionMapping.at(&f);
 }
 
 void VRCodeGraph::hasCategorizedEdges() { categorizedEdges = true; }
@@ -138,45 +138,32 @@ bool VRCodeGraph::LazyVisit::wasVisited(VRLocation *loc) const {
 /* ************ begins and ends ************ */
 
 VRCodeGraph::LazyDFS
-VRCodeGraph::lazy_dfs_begin(const llvm::Function *f) const {
+VRCodeGraph::lazy_dfs_begin(const llvm::Function &f) const {
     assert(categorizedEdges);
     return LazyDFS(f, &getEntryLocation(f), Dir::FORWARD);
 }
 
-VRCodeGraph::LazyDFS
-VRCodeGraph::lazy_dfs_end(const llvm::Function * /*f*/) const {
-    return LazyDFS();
-}
-
-VRCodeGraph::LazyDFS VRCodeGraph::lazy_dfs_begin(const llvm::Function *f,
+VRCodeGraph::LazyDFS VRCodeGraph::lazy_dfs_begin(const llvm::Function &f,
                                                  VRLocation &start) const {
     assert(categorizedEdges);
     return LazyDFS(f, &start, Dir::FORWARD);
 }
 
-VRCodeGraph::LazyDFS VRCodeGraph::lazy_dfs_end(const llvm::Function * /*f*/,
-                                               VRLocation & /*start*/) const {
-    return LazyDFS();
-}
+VRCodeGraph::LazyDFS VRCodeGraph::lazy_dfs_end() const { return LazyDFS(); }
 
-VRCodeGraph::SimpleDFS VRCodeGraph::dfs_begin(const llvm::Function *f) const {
+VRCodeGraph::SimpleDFS VRCodeGraph::dfs_begin(const llvm::Function &f) const {
     return SimpleDFS(f, &getEntryLocation(f), Dir::FORWARD);
 }
 
-VRCodeGraph::SimpleDFS
-VRCodeGraph::dfs_end(const llvm::Function * /*f*/) const {
-    return SimpleDFS();
-}
+VRCodeGraph::SimpleDFS VRCodeGraph::dfs_end() const { return SimpleDFS(); }
 
 VRCodeGraph::SimpleDFS
-VRCodeGraph::backward_dfs_begin(const llvm::Function *f,
+VRCodeGraph::backward_dfs_begin(const llvm::Function &f,
                                 VRLocation &start) const {
     return SimpleDFS(f, &start, Dir::BACKWARD);
 }
 
-VRCodeGraph::SimpleDFS
-VRCodeGraph::backward_dfs_end(const llvm::Function * /*f*/,
-                              VRLocation & /*start*/) const {
+VRCodeGraph::SimpleDFS VRCodeGraph::backward_dfs_end() const {
     return SimpleDFS();
 }
 
@@ -188,7 +175,7 @@ VRCodeGraph::VRCodeGraphIterator::VRCodeGraphIterator(MappingIterator end)
 VRCodeGraph::VRCodeGraphIterator::VRCodeGraphIterator(MappingIterator begin,
                                                       MappingIterator end)
         : intoMapping(begin), endMapping(end),
-          intoFunction(begin->first, begin->second, Dir::FORWARD) {}
+          intoFunction(*begin->first, begin->second, Dir::FORWARD) {}
 
 bool operator==(const VRCodeGraph::VRCodeGraphIterator &lt,
                 const VRCodeGraph::VRCodeGraphIterator &rt) {
@@ -204,7 +191,7 @@ VRCodeGraph::VRCodeGraphIterator::operator++() {
     if (intoFunction == LazyDFS()) {
         ++intoMapping;
         if (intoMapping != endMapping)
-            intoFunction = LazyDFS(intoMapping->first, intoMapping->second,
+            intoFunction = LazyDFS(*intoMapping->first, intoMapping->second,
                                    Dir::FORWARD);
     }
     return *this;
