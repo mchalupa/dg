@@ -38,7 +38,7 @@ class RelationsAnalyzer {
     // holds information about structural properties of analyzed module
     // like set of instructions executed in loop starging at given location
     // or possibly set of values defined at given location
-    const StructureAnalyzer &structure;
+    StructureAnalyzer &structure;
 
     // ********************** points to invalidation ********************** //
     bool isIgnorableIntrinsic(llvm::Intrinsic::ID id) const;
@@ -61,6 +61,8 @@ class RelationsAnalyzer {
                        const llvm::BinaryOperator *operation);
     void solveCommutativity(ValueRelations &graph,
                             const llvm::BinaryOperator *operation);
+    bool canShift(const ValueRelations &graph, V param, Relations::Type shift);
+    void solveDifferent(ValueRelations &graph, const llvm::BinaryOperator *op);
 
     // ******************** gen from instruction ************************** //
     void storeGen(ValueRelations &graph, const llvm::StoreInst *store);
@@ -124,7 +126,7 @@ class RelationsAnalyzer {
 
   public:
     RelationsAnalyzer(const llvm::Module &m, const VRCodeGraph &g,
-                      const StructureAnalyzer &sa)
+                      StructureAnalyzer &sa)
             : module(m), codeGraph(g), structure(sa) {}
 
     unsigned analyze(unsigned maxPass);
