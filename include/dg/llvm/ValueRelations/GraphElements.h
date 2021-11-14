@@ -305,9 +305,10 @@ struct VRCodeGraph {
                 // if there is still other unexplored path to the join, then
                 // wait untill it is explored also
                 if (categorizedEdges && edge->target->isJustBranchJoin()) {
-                    auto pair = counts.emplace(edge->target, 1);
+                    auto pair = counts.emplace(edge->target, 0);
 
-                    unsigned targetFoundTimes = pair.first->second;
+                    unsigned &targetFoundTimes = pair.first->second;
+                    ++targetFoundTimes;
                     if (targetFoundTimes != edge->target->predecessors.size())
                         continue;
                 }
