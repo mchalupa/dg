@@ -122,122 +122,74 @@ VRLocation &VRCodeGraph::getEntryLocation(const llvm::Function *f) const {
 
 void VRCodeGraph::hasCategorizedEdges() { categorizedEdges = true; }
 
-/* ************ function iterator stuff ************ */
+/* ************ visits ************ */
 
-VRCodeGraph::Supplements::Supplements(const llvm::Function *f,
-                                      VRLocation *start, Dir d)
-        : function(f), direction(d) {
-    visited.emplace(start);
-}
+void VRCodeGraph::SimpleVisit::find(VRLocation *loc) { visited.emplace(loc); }
 
-std::vector<VREdge *>
-VRCodeGraph::Supplements::getNextEdges(VRLocation *loc) const {
-    return direction == Dir::FORWARD ? loc->getSuccessors()
-                                     : loc->getPredecessors();
-}
-
-VRLocation *VRCodeGraph::Supplements::getNextLocation(VREdge *edge) const {
-    return direction == Dir::FORWARD ? edge->target : edge->source;
-}
-
-bool VRCodeGraph::Supplements::inOtherFunction(VREdge *edge) const {
-    if (edge->op->isInstruction()) {
-        const llvm::Instruction *inst =
-                static_cast<VRInstruction *>(edge->op.get())->getInstruction();
-        if (inst->getFunction() != function) {
-            assert(0 && "has edge to other function");
-            return true;
-        }
-    }
-    return false;
-}
-
-// is null or target was visited or leads to other function
-bool VRCodeGraph::Supplements::irrelevant(VREdge *edge) const {
-    VRLocation *next = getNextLocation(edge);
-    return !next || visited.find(next) != visited.end() ||
-           inOtherFunction(edge);
-}
-
-VRCodeGraph::BFSIncrement::BFSIncrement(const llvm::Function *f,
-                                        VRLocation *start, bool e, Dir d)
-        : Supplements(f, start, d), categorizedEdges(e) {
-    queue.emplace(start, nullptr);
-}
-
-void VRCodeGraph::BFSIncrement::increment() {
-    VRLocation *current = queue.front().first;
-    queue.pop();
-
-    for (VREdge *edge : getNextEdges(current)) {
-        // do not explore if there is no target or if target was already
-        // explored or if is in other function
-        if (irrelevant(edge))
-            continue;
-
-        VRLocation *next = getNextLocation(edge);
-
-        // if there is still other unexplored path to the join, then
-        // wait untill it is explored also
-        if (direction == Dir::FORWARD && categorizedEdges &&
-            next->isJustBranchJoin()) {
-            auto pair = counts.emplace(next, 0);
-
-            unsigned &targetFoundTimes = pair.first->second;
-            ++targetFoundTimes;
-            if (targetFoundTimes != next->predecessors.size())
-                continue;
-        }
-
-        // otherwise set the target to be explored
-        queue.emplace(next, edge);
-        visited.emplace(next);
-    }
-}
-
-VRCodeGraph::DFSIncrement::DFSIncrement(const llvm::Function *f,
-                                        VRLocation *start, bool /*e*/, Dir d)
-        : Supplements(f, start, d) {
-    stack.emplace_back(start, 0, nullptr);
-}
-
-void VRCodeGraph::DFSIncrement::increment() {
-    while (!stack.empty()) {
-        VRLocation *current;
-        unsigned index;
-        VREdge *prevEdge;
-        std::tie(current, index, prevEdge) = stack.back();
-        stack.pop_back();
-
-        std::vector<VREdge *> nextEdges = getNextEdges(current);
-        // do not explore if there is no target or if target was already
-        // explored or if is in other function
-        while (index < nextEdges.size() && irrelevant(nextEdges[index]))
-            ++index;
-
-        if (index >= nextEdges.size())
-            continue;
-        stack.emplace_back(current, index + 1, prevEdge);
-
-        VREdge *nextEdge = nextEdges[index];
-        VRLocation *next = getNextLocation(nextEdge);
-
-        // otherwise set the target to be explored
-        stack.emplace_back(next, 0, nextEdge);
-        visited.emplace(next);
-        return;
-    }
-}
-
-bool VRCodeGraph::DFSIncrement::onStack(VRLocation *loc) const {
-    for (auto &elem : stack)
-        if (loc == std::get<0>(elem))
-            return true;
-    return false;
-}
-
-bool VRCodeGraph::DFSIncrement::wasVisited(VRLocation *loc) const {
+bool VRCodeGraph::SimpleVisit::wasVisited(VRLocation *loc) const {
     return visited.find(loc) != visited.end();
+}
+
+unsigned VRCodeGraph::LazyVisit::getPrevEdgesSize(VRLocation *loc) const {
+    return loc->predsSize();
+}
+
+void VRCodeGraph::LazyVisit::find(VRLocation *loc) {
+    auto &count = visited[loc];
+    if (loc->isJustBranchJoin())
+        ++count;
+    else
+        count = getPrevEdgesSize(loc);
+}
+
+bool VRCodeGraph::LazyVisit::wasVisited(VRLocation *loc) const {
+    auto it = visited.find(loc);
+    return it != visited.end() && it->second >= getPrevEdgesSize(loc);
+}
+
+/* ************ begins and ends ************ */
+
+VRCodeGraph::LazyDFS
+VRCodeGraph::lazy_dfs_begin(const llvm::Function *f) const {
+    assert(categorizedEdges);
+    return LazyDFS(f, &getEntryLocation(f), Dir::FORWARD);
+}
+
+VRCodeGraph::LazyDFS
+VRCodeGraph::lazy_dfs_end(const llvm::Function * /*f*/) const {
+    return LazyDFS();
+}
+
+VRCodeGraph::LazyDFS VRCodeGraph::lazy_dfs_begin(const llvm::Function *f,
+                                                 VRLocation &start) const {
+    assert(categorizedEdges);
+    return LazyDFS(f, &start, Dir::FORWARD);
+}
+
+VRCodeGraph::LazyDFS VRCodeGraph::lazy_dfs_end(const llvm::Function * /*f*/,
+                                               VRLocation & /*start*/) const {
+    return LazyDFS();
+}
+
+VRCodeGraph::SimpleDFS VRCodeGraph::dfs_begin(const llvm::Function *f) const {
+    return SimpleDFS(f, &getEntryLocation(f), Dir::FORWARD);
+}
+
+VRCodeGraph::SimpleDFS
+VRCodeGraph::dfs_end(const llvm::Function * /*f*/) const {
+    return SimpleDFS();
+}
+
+VRCodeGraph::SimpleDFS
+VRCodeGraph::backward_dfs_begin(const llvm::Function *f,
+                                VRLocation &start) const {
+    return SimpleDFS(f, &start, Dir::BACKWARD);
+}
+
+VRCodeGraph::SimpleDFS
+VRCodeGraph::backward_dfs_end(const llvm::Function * /*f*/,
+                              VRLocation & /*start*/) const {
+    return SimpleDFS();
 }
 
 /* ************ code graph iterator stuff ************ */
@@ -246,20 +198,26 @@ VRCodeGraph::VRCodeGraphIterator::VRCodeGraphIterator(MappingIterator end)
         : intoMapping(end), endMapping(end) {}
 
 VRCodeGraph::VRCodeGraphIterator::VRCodeGraphIterator(MappingIterator begin,
-                                                      MappingIterator end,
-                                                      bool e)
+                                                      MappingIterator end)
         : intoMapping(begin), endMapping(end),
-          intoFunction(begin->first, begin->second, e, Dir::FORWARD),
-          categorizedEdges(e) {}
+          intoFunction(begin->first, begin->second, Dir::FORWARD) {}
+
+bool operator==(const VRCodeGraph::VRCodeGraphIterator &lt,
+                const VRCodeGraph::VRCodeGraphIterator &rt) {
+    bool ltIsEnd = lt.intoMapping == lt.endMapping;
+    bool rtIsEnd = rt.intoMapping == rt.endMapping;
+    return (ltIsEnd && rtIsEnd) ||
+           (!ltIsEnd && !rtIsEnd && lt.intoFunction == rt.intoFunction);
+}
 
 VRCodeGraph::VRCodeGraphIterator &
 VRCodeGraph::VRCodeGraphIterator::operator++() {
     ++intoFunction;
-    if (intoFunction == BFSIterator()) {
+    if (intoFunction == LazyDFS()) {
         ++intoMapping;
         if (intoMapping != endMapping)
-            intoFunction = BFSIterator(intoMapping->first, intoMapping->second,
-                                       categorizedEdges, Dir::FORWARD);
+            intoFunction = LazyDFS(intoMapping->first, intoMapping->second,
+                                   Dir::FORWARD);
     }
     return *this;
 }
@@ -269,6 +227,18 @@ VRCodeGraph::VRCodeGraphIterator::operator++(int) {
     auto copy = *this;
     ++*this;
     return copy;
+}
+
+VRCodeGraph::VRCodeGraphIterator VRCodeGraph::begin() const {
+    return functionMapping.empty()
+                   ? VRCodeGraphIterator()
+                   : VRCodeGraphIterator(functionMapping.begin(),
+                                         functionMapping.end());
+}
+
+VRCodeGraph::VRCodeGraphIterator VRCodeGraph::end() const {
+    return functionMapping.empty() ? VRCodeGraphIterator()
+                                   : VRCodeGraphIterator(functionMapping.end());
 }
 
 } // namespace vr
