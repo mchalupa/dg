@@ -35,6 +35,9 @@ using llvm::errs;
 llvm::cl::opt<bool> todot("dot", llvm::cl::desc("Dump graph in grahviz format"),
                           llvm::cl::init(false));
 
+llvm::cl::opt<bool> joins("joins", llvm::cl::desc("Dump join informations"),
+                          llvm::cl::init(false));
+
 llvm::cl::opt<unsigned> max_iter("max-iter",
                                  llvm::cl::desc("Maximal number of iterations"),
                                  llvm::cl::init(20));
@@ -102,6 +105,9 @@ void dumpEdges(const VRCodeGraph &codeGraph) {
                 std::cout << edge(loc, *e->target) << " [color=magenta];\n";
             }
         }
+
+        if (joins && loc.join)
+            std::cout << edge(loc, *loc.join) << " [color=pink];\n";
     }
 }
 
