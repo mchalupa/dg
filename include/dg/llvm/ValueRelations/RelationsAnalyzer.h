@@ -51,9 +51,6 @@ class RelationsAnalyzer {
     bool mayOverwrite(I inst, V address) const;
 
     // ************************ operation helpers ************************* //
-    static void solvesDiffOne(ValueRelations &graph, V param,
-                              const llvm::BinaryOperator *op,
-                              Relations::Type rel);
     static bool operandsEqual(ValueRelations &graph, I fst, I snd,
                               bool sameOrder);
     void solveByOperands(ValueRelations &graph,

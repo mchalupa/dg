@@ -162,18 +162,6 @@ bool RelationsAnalyzer::mayOverwrite(I inst, V address) const {
 }
 
 // ************************ operation helpers ************************* //
-void RelationsAnalyzer::solvesDiffOne(ValueRelations &graph, V param,
-                                      const llvm::BinaryOperator *op,
-                                      Relations::Type rel) {
-    std::vector<V> sample =
-            graph.getDirectlyRelated(param, Relations().set(rel));
-
-    for (V val : sample) {
-        assert(graph.are(param, rel, val));
-        graph.set(op, Relations::getNonStrict(rel), val);
-    }
-}
-
 bool RelationsAnalyzer::operandsEqual(
         ValueRelations &graph, I fst, I snd,
         bool sameOrder) { // false means checking in reverse order
