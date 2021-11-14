@@ -166,6 +166,7 @@ bool Relations::isSigned(Type type) {
         return false;
     default:
         assert(0 && "unreachable");
+        abort();
     }
 }
 

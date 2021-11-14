@@ -81,8 +81,7 @@ bool RelationsAnalyzer::mayHaveAlias(V val) const {
             if (mayHaveAlias(user))
                 return true;
 
-        } else if (auto gep = llvm::dyn_cast<llvm::GetElementPtrInst>(user)) {
-            assert(gep->getPointerOperand() == val);
+        } else if (llvm::isa<llvm::GetElementPtrInst>(user)) {
             return true; // TODO possible to collect here
 
         } else if (auto intrinsic = llvm::dyn_cast<llvm::IntrinsicInst>(user)) {
@@ -167,11 +166,11 @@ void RelationsAnalyzer::solvesDiffOne(ValueRelations &graph, V param,
                                       Relations::Type rel) {
     std::vector<V> sample =
             graph.getDirectlyRelated(param, Relations().set(rel));
-    for (V val : sample)
-        assert(graph.are(param, rel, val));
 
-    for (V val : sample)
+    for (V val : sample) {
+        assert(graph.are(param, rel, val));
         graph.set(op, Relations::getNonStrict(rel), val);
+    }
 }
 
 bool RelationsAnalyzer::operandsEqual(
@@ -351,11 +350,11 @@ void RelationsAnalyzer::solveDifferent(ValueRelations &graph,
 
         std::vector<V> sample =
                 graph.getDirectlyRelated(param, Relations().set(shift));
-        for (V val : sample)
-            assert(graph.are(param, shift, val));
 
-        for (V val : sample)
+        for (V val : sample) {
+            assert(graph.are(param, shift, val));
             graph.set(op, Relations::getNonStrict(shift), val);
+        }
     }
 }
 
@@ -838,6 +837,7 @@ bool RelationsAnalyzer::passFunction(const llvm::Function &function,
     for (auto it = codeGraph.lazy_dfs_begin(function);
          it != codeGraph.lazy_dfs_end(); ++it) {
         VRLocation &location = *it;
+#ifndef NDEBUG
         bool cond = location.id == 91;
         if (print && cond) {
             std::cerr << "LOCATION " << location.id << std::endl;
@@ -852,6 +852,7 @@ bool RelationsAnalyzer::passFunction(const llvm::Function &function,
             }
             std::cerr << "before\n" << location.relations << "\n";
         }
+#endif
 
         if (location.predsSize() > 1) {
             mergeRelations(location);
@@ -862,10 +863,12 @@ bool RelationsAnalyzer::passFunction(const llvm::Function &function,
         } // else no predecessors => nothing to be passed
 
         bool locationChanged = location.relations.unsetChanged();
+#ifndef NDEBUG
         if (print && cond /*&& locationChanged*/) {
             std::cerr << "after\n" << location.relations;
             return false;
         }
+#endif
         changed |= locationChanged;
     }
     return changed;
