@@ -193,6 +193,8 @@ class VRCodeGraph {
     void setEntryLocation(const llvm::Function *f, VRLocation &loc);
 
   public:
+    /* return VRLocation corresponding to the state of the program BEFORE
+     * executing the passed instruction */
     VRLocation &getVRLocation(const llvm::Instruction *ptr) const;
     VRLocation &getEntryLocation(const llvm::Function &f) const;
 
