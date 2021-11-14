@@ -207,74 +207,59 @@ void StructureAnalyzer::findLoops() {
             if (!location.isJustLoopJoin())
                 continue;
 
-            std::vector<VREdge *> &predEdges = location.predecessors;
+            auto backwardReach = collectBackward(function, location);
 
-            // remove the incoming tree edge, so that backwardReach would
-            // really go only backwards
-            VREdge *treePred = nullptr;
-            for (auto it = predEdges.begin(); it != predEdges.end(); ++it) {
-                if ((*it)->type == EdgeType::TREE) {
-                    treePred = *it;
-                    predEdges.erase(it);
-                    break;
-                }
-            }
-            assert(treePred); // every join has to have exactly one tree
-                              // predecessor
-
-            auto forwardReach =
-                    collectReachableEdges(&function, location, true);
-            auto backwardReach =
-                    collectReachableEdges(&function, location, false);
-
-            // put the tree edge back in
-            predEdges.emplace_back(treePred);
-
-            auto inloopValuesIt =
+            auto &loop =
                     inloopValues
                             .emplace(&location,
                                      std::vector<const llvm::Instruction *>())
-                            .first;
+                            .first->second;
 
-            for (auto edge : forwardReach) {
-                if (std::find(backwardReach.begin(), backwardReach.end(),
-                              edge) != backwardReach.end()) {
-                    edge->target->inLoop = true;
+            for (auto it = codeGraph.lazy_dfs_begin(function, location);
+                 it != codeGraph.lazy_dfs_end(); ++it) {
+                VREdge *edge = it.getEdge();
+                if (backwardReach.find(edge) != backwardReach.end()) {
                     if (edge->op->isInstruction()) {
                         auto *op = static_cast<VRInstruction *>(edge->op.get());
-                        inloopValuesIt->second.emplace_back(
-                                op->getInstruction());
+                        loop.emplace_back(op->getInstruction());
                     }
                 }
             }
-            assert(location.succsSize() == 1);
-            if (!forwardReach.empty() && forwardReach[0]->op->isInstruction())
-                inloopValues.at(&location).emplace(
-                        inloopValues.at(&location).begin(),
-                        static_cast<VRInstruction *>(forwardReach[0]->op.get())
-                                ->getInstruction());
         }
     }
 }
 
-std::vector<VREdge *>
-StructureAnalyzer::collectReachableEdges(const llvm::Function *f,
-                                         VRLocation &from, bool goForward) {
-    std::vector<VREdge *> result;
-    if (goForward) {
-        for (auto it = codeGraph.lazy_dfs_begin(f, from);
-             it != codeGraph.lazy_dfs_end(f, from); ++it) {
-            if (VREdge *edge = it.getEdge())
-                result.emplace_back(edge);
+std::set<VREdge *> StructureAnalyzer::collectBackward(const llvm::Function &f,
+                                                      VRLocation &from) {
+    std::vector<VREdge *> &predEdges = from.predecessors;
+
+    // remove the incoming tree edge, so that backwardReach would
+    // really go only backwards
+    VREdge *treePred = nullptr;
+    for (auto it = predEdges.begin(); it != predEdges.end(); ++it) {
+        if ((*it)->type == EdgeType::TREE) {
+            treePred = *it;
+            predEdges.erase(it);
+            break;
         }
-        return result;
+    }
+    assert(treePred); // every join has to have exactly one tree predecessor
+
+    std::set<VREdge *> result;
+    for (auto it = codeGraph.backward_dfs_begin(f, from);
+         it != codeGraph.backward_dfs_end(); ++it) {
+        if (VREdge *edge = it.getEdge())
+            result.emplace(edge);
     }
 
-    for (auto it = codeGraph.backward_dfs_begin(f, from);
-         it != codeGraph.backward_dfs_end(f, from); ++it) {
-        if (VREdge *edge = it.getEdge())
-            result.emplace_back(edge);
-    }
+    assert(from.succsSize() == 1);
+    // since from is marked visited at the beginning, these edge would never be
+    // visited
+    result.emplace(from.getSuccEdge(0));
+
+    // put the tree edge back in
+    predEdges.emplace_back(treePred);
+
     return result;
 }
 

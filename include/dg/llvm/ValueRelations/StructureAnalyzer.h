@@ -81,9 +81,8 @@ class StructureAnalyzer {
 
     void findLoops();
 
-    std::vector<VREdge *> collectReachableEdges(const llvm::Function *f,
-                                                VRLocation &from,
-                                                bool goForward);
+    std::set<VREdge *> collectBackward(const llvm::Function &f,
+                                       VRLocation &from);
 
     void initializeDefined();
 
