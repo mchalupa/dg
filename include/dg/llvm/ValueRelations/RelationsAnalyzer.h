@@ -56,6 +56,7 @@ class RelationsAnalyzer {
     bool mayHaveAlias(const ValueRelations &graph, Handle h) const;
     bool hasKnownOrigin(const ValueRelations &graph, Handle h) const;
     std::vector<HandleRef> instructionKeeps(I inst) const;
+    bool mayOverwrite(I inst, V address) const;
 
     // ************************ points to helpers ************************* //
     bool mayHaveAlias(const ValueRelations &graph, V val) const;
@@ -63,6 +64,7 @@ class RelationsAnalyzer {
     bool isIgnorableIntrinsic(llvm::Intrinsic::ID id) const;
     static V stripCastsAndGEPs(V memoryPtr);
     static bool hasKnownOrigin(const ValueRelations &graph, V from);
+    static bool hasKnownOrigin(V from);
 
     // ************************ operation helpers ************************* //
     bool solvesSameType(ValueRelations &graph, const llvm::ConstantInt *c1,
@@ -99,30 +101,21 @@ class RelationsAnalyzer {
     // *********************** merge helpers **************************** //
     Relations relationsInAllPreds(const VRLocation &location, V lt,
                                   Relations known, V rt) const;
-    Relations relationsByLoadInAllPreds(const std::vector<VRLocation *> &preds,
-                                        V from, V related) const;
     void checkRelatesInAll(VRLocation &location, V lt, Relations known, V rt,
                            std::set<V> &setEqual);
     bool relatesByLoadInAll(const std::vector<VRLocation *> &preds, V related,
                             V from, Relation rel) const;
-    bool loadsInAll(const std::vector<VRLocation *> &locations, V from,
-                    V value) const;
-    bool loadsSomethingInAll(const std::vector<VRLocation *> &locations,
-                             V from) const;
-    bool hasConflictLoad(const std::vector<VRLocation *> &preds, V from, V val);
-    bool anyInvalidated(const std::set<V> &allInvalid,
-                        const VectorSet<V> &froms);
-    bool isGoodFromForPlaceholder(const std::vector<VRLocation *> &preds,
-                                  V from, const VectorSet<V> &values);
-    void inferChangeInLoop(ValueRelations &newGraph,
-                           const std::vector<V> &froms, VRLocation &location);
-    void inferFromChangeLocations(ValueRelations &newGraph,
-                                  VRLocation &location);
-    void intersectByLoad(const std::vector<VRLocation *> &preds, V from,
-                         ValueRelations &newGraph);
+    Relations getCommon(V from,
+                        const std::vector<VRLocation *> &changeRelations,
+                        V firstLoad, V predVal);
+    std::pair<std::vector<VRLocation *>, V>
+    getChangeLocations(V from, VRLocation &join);
     std::pair<C, Relations>
     getBoundOnPointedToValue(const std::vector<VRLocation *> &preds, V from,
                              Relation rel) const;
+    void relateToFirstLoad(const std::vector<VRLocation *> &preds, V from,
+                           ValueRelations &newGraph, Handle placeholder,
+                           V firstLoad);
     void relateBounds(const std::vector<VRLocation *> &preds, V from,
                       ValueRelations &newGraph, Handle placeholder);
     void relateValues(const std::vector<VRLocation *> &preds, V from,
