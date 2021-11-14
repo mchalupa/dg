@@ -157,7 +157,7 @@ class Bucket {
         friend std::ostream &operator<<(std::ostream &out,
                                         const RelationEdge &edge) {
             auto nEdge = const_cast<RelationEdge &>(edge);
-            out << nEdge.to().id << " " << edge.rel() << " " << nEdge.from().id;
+            out << nEdge.from().id << " " << edge.rel() << " " << nEdge.to().id;
             return out;
         }
 #endif
@@ -288,8 +288,8 @@ class Bucket {
     friend std::ostream &operator<<(std::ostream &out, const Bucket &bucket) {
         for (auto &pair : bucket.relatedBuckets) {
             for (auto &related : pair.second)
-                out << "{ " << related.get().id << " } " << pair.first << " { "
-                    << bucket.id << " }";
+                out << "{ " << bucket.id << " } " << pair.first << " { "
+                    << related.get().id << " }";
         }
         return out;
     }
