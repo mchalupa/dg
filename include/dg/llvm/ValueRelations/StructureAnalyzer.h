@@ -10,61 +10,11 @@
 #include <algorithm>
 
 #include "GraphElements.h"
+#include "StructureElements.h"
 #include "dg/AnalysisOptions.h"
 
 namespace dg {
 namespace vr {
-
-struct AllocatedSizeView {
-    const llvm::Value *elementCount = nullptr;
-    uint64_t elementSize = 0; // in bytes
-
-    AllocatedSizeView() = default;
-    AllocatedSizeView(const llvm::Value *count, uint64_t size)
-            : elementCount(count), elementSize(size) {}
-};
-
-class AllocatedArea {
-    const llvm::Value *ptr;
-    // used only if memory was allocated with realloc, as fallback when realloc
-    // fails
-    const llvm::Value *reallocatedPtr = nullptr;
-    AllocatedSizeView originalSizeView;
-
-  public:
-    static const llvm::Value *stripCasts(const llvm::Value *inst);
-
-    static uint64_t getBytes(const llvm::Type *type);
-
-    AllocatedArea(const llvm::AllocaInst *alloca);
-
-    AllocatedArea(const llvm::CallInst *call);
-
-    const llvm::Value *getPtr() const { return ptr; }
-    const llvm::Value *getReallocatedPtr() const { return reallocatedPtr; }
-
-    std::vector<AllocatedSizeView> getAllocatedSizeViews() const;
-
-#ifndef NDEBUG
-    void ddump() const;
-#endif
-};
-
-struct CallRelation {
-    std::vector<std::pair<const llvm::Argument *, const llvm::Value *>>
-            equalPairs;
-    VRLocation *callSite = nullptr;
-};
-
-struct Precondition {
-    const llvm::Argument *arg;
-    Relations::Type rel;
-    const llvm::Value *val;
-
-    Precondition(const llvm::Argument *a, Relations::Type r,
-                 const llvm::Value *v)
-            : arg(a), rel(r), val(v) {}
-};
 
 class StructureAnalyzer {
     const llvm::Module &module;
