@@ -208,7 +208,9 @@ class VRCodeGraph {
 
       protected:
         void find(VRLocation *loc);
-        bool shouldVisit(VRLocation *loc) const { return true; }
+        bool shouldVisit(__attribute__((unused)) VRLocation *loc) const {
+            return true;
+        }
 
       public:
         bool wasVisited(VRLocation *loc) const;
