@@ -89,7 +89,7 @@ class RelationsAnalyzer {
             V from, const std::vector<const ValueRelations *> &changeRelations,
             V firstLoad, V prevVal);
     std::pair<std::vector<const ValueRelations *>, V>
-    getChangeLocations(V from, VRLocation &join);
+    getChangeRelations(V from, VRLocation &join);
     std::pair<C, Relations> getBoundOnPointedToValue(
             const std::vector<const ValueRelations *> &changeRelations, V from,
             Relation rel) const;
