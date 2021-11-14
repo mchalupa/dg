@@ -482,6 +482,16 @@ class RelationsGraph {
         return bucket;
     }
 
+    void makeBorderBucket(const Bucket &b, size_t id) {
+        size_t currentId = getBorderId(b);
+        if (currentId == id)
+            return;
+
+        assert(getBorderB(id) == nullptr);
+        assert(getBorderId(b) == std::string::npos);
+        borderBuckets.emplace_back(id, b);
+    }
+
 #ifndef NDEBUG
     void dumpBorderBuckets(std::ostream &out = std::cerr) const {
         out << "[ ";
