@@ -146,7 +146,7 @@ ValueRelations::getDirectlyRelated(V val, const Relations &rels) const {
     std::vector<ValueRelations::V> result;
     std::transform(
             related.begin(), related.end(), std::back_inserter(result),
-            [this](const auto &pair) { return this->getAny(pair.first); });
+            [this](const RelationsMap::value_type &pair) { return this->getAny(pair.first); });
     return result;
 }
 
