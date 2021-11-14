@@ -20,7 +20,8 @@ Relations ValueRelations::_between(Handle lt, C cRt) const {
     if (!cRt)
         return Relations();
 
-    for (Relations::Type rel : {Relations::LE, Relations::GE}) {
+    for (Relations::Type rel :
+         {Relations::SLE, Relations::ULE, Relations::SGE, Relations::UGE}) {
         C boundLt;
         Relations relsLt;
         std::tie(boundLt, relsLt) = getBound(lt, Relations().set(rel));
@@ -81,7 +82,7 @@ ValueRelations::RelGraph::iterator ValueRelations::end_related(Handle h) const {
 }
 
 ValueRelations::rel_iterator ValueRelations::begin_all(V val) const {
-    return begin_related(val, Relations().eq().lt().le().gt().ge(), true);
+    return begin_related(val, comparative, true);
 }
 
 ValueRelations::rel_iterator ValueRelations::end_all(V val) const {
@@ -89,7 +90,7 @@ ValueRelations::rel_iterator ValueRelations::end_all(V val) const {
 }
 
 ValueRelations::rel_iterator ValueRelations::begin_lesserEqual(V val) const {
-    return begin_related(val, Relations().eq().gt().ge(), true);
+    return begin_related(val, Relations().eq().sgt().sge().ugt().uge(), true);
 }
 
 ValueRelations::rel_iterator ValueRelations::end_lesserEqual(V val) const {
@@ -166,11 +167,11 @@ ValueRelations::getDirectlyRelated(V val, const Relations &rels) const {
 }
 
 std::vector<ValueRelations::V> ValueRelations::getDirectlyLesser(V val) const {
-    return getDirectlyRelated(val, Relations().gt());
+    return getDirectlyRelated(val, Relations().sgt().ugt());
 }
 
 std::vector<ValueRelations::V> ValueRelations::getDirectlyGreater(V val) const {
-    return getDirectlyRelated(val, Relations().lt());
+    return getDirectlyRelated(val, Relations().slt().ult());
 }
 
 std::pair<ValueRelations::C, Relations>
@@ -374,11 +375,11 @@ std::pair<ValueRelations::BRef, bool> ValueRelations::add(V val, Handle h) {
                 return {valToBucket.find(val)->second, true};
             }
 
-            if (compare(c, Relations::LT, otherC))
-                graph.addRelation(h, Relations::LT, otherH);
-
-            else if (compare(c, Relations::GT, otherC))
-                graph.addRelation(h, Relations::GT, otherH);
+            for (Relations::Type type : {Relations::SLT, Relations::ULT,
+                                         Relations::SGT, Relations::UGT}) {
+                if (compare(c, type, otherC))
+                    graph.addRelation(h, type, otherH);
+            }
         }
     }
 
