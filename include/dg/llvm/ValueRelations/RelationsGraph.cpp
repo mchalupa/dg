@@ -7,11 +7,8 @@
 namespace dg {
 namespace vr {
 
-RelationType toRelation(size_t i) { return static_cast<RelationType>(i); }
-
-size_t toInt(RelationType t) { return static_cast<size_t>(t); }
-
-size_t p(RelationType t) { return pow(2, static_cast<size_t>(t)); }
+const std::array<Relations::Type, Relations::total> Relations::all = {
+        EQ, NE, LE, LT, GE, GT, PT, PF};
 
 Relations::Type Relations::inverted(Relations::Type type) {
     switch (type) {
@@ -31,29 +28,6 @@ Relations::Type Relations::inverted(Relations::Type type) {
         return PF;
     case PF:
         return PT;
-    }
-    assert(0 && "unreachable");
-    abort();
-}
-
-RelationType inverted(RelationType type) {
-    switch (type) {
-    case RelationType::EQ:
-        return RelationType::EQ;
-    case RelationType::NE:
-        return RelationType::NE;
-    case RelationType::LE:
-        return RelationType::GE;
-    case RelationType::LT:
-        return RelationType::GT;
-    case RelationType::GE:
-        return RelationType::LE;
-    case RelationType::GT:
-        return RelationType::LT;
-    case RelationType::PT:
-        return RelationType::PF;
-    case RelationType::PF:
-        return RelationType::PT;
     }
     assert(0 && "unreachable");
     abort();
@@ -81,26 +55,6 @@ Relations::Type Relations::negated(Type type) {
     abort();
 }
 
-RelationType negated(RelationType type) {
-    switch (type) {
-    case RelationType::EQ:
-        return RelationType::NE;
-    case RelationType::NE:
-        return RelationType::EQ;
-    case RelationType::LE:
-        return RelationType::GT;
-    case RelationType::LT:
-        return RelationType::GE;
-    case RelationType::GE:
-        return RelationType::LT;
-    case RelationType::GT:
-        return RelationType::LE;
-    default:
-        assert(0 && "no negation for relation");
-        abort();
-    }
-}
-
 Relations Relations::conflicting(Relations::Type type) {
     switch (type) {
     case EQ:
@@ -123,28 +77,6 @@ Relations Relations::conflicting(Relations::Type type) {
     abort();
 }
 
-RelationBits conflicting(RelationType type) {
-    switch (type) {
-    case RelationType::EQ:
-        return p(RelationType::NE) | p(RelationType::LT) | p(RelationType::GT);
-    case RelationType::NE:
-        return p(RelationType::EQ);
-    case RelationType::LT:
-        return p(RelationType::EQ) | p(RelationType::GT) | p(RelationType::GE);
-    case RelationType::GT:
-        return p(RelationType::EQ) | p(RelationType::LT) | p(RelationType::LE);
-    case RelationType::LE:
-        return p(RelationType::GT);
-    case RelationType::GE:
-        return p(RelationType::LT);
-    case RelationType::PT:
-    case RelationType::PF:
-        return 0;
-    }
-    assert(0 && "unreachable");
-    abort();
-}
-
 Relations &Relations::addImplied() {
     if (has(EQ))
         le().ge();
@@ -155,31 +87,16 @@ Relations &Relations::addImplied() {
     return *this;
 }
 
-void addImplied(RelationBits &bits) {
-    for (size_t i = 0; i < allRelations.size(); ++i) {
-        if (bits[i]) {
-            switch (toRelation(i)) {
-            case RelationType::EQ:
-                bits.set(toInt(RelationType::LE));
-                bits.set(toInt(RelationType::GE));
-                break;
-            case RelationType::LT:
-                bits.set(toInt(RelationType::LE));
-                bits.set(toInt(RelationType::NE));
-                break;
-            case RelationType::GT:
-                bits.set(toInt(RelationType::GE));
-                bits.set(toInt(RelationType::NE));
-                break;
-            case RelationType::NE:
-            case RelationType::LE:
-            case RelationType::GE:
-            case RelationType::PT:
-            case RelationType::PF:
-                break;
-            }
+Relations &Relations::invert() {
+    std::bitset<8> newBits;
+    for (Type rel : Relations::all) {
+        if (has(rel)) {
+            newBits.set(inverted(rel));
         }
     }
+
+    std::swap(bits, newBits);
+    return *this;
 }
 
 bool Relations::transitiveOver(Type fst, Type snd) {
@@ -199,27 +116,6 @@ bool Relations::transitiveOver(Type fst, Type snd) {
     assert(0 && "unreachable");
     abort();
 }
-
-bool transitiveOver(RelationType fst, RelationType snd) {
-    switch (fst) {
-    case RelationType::LE:
-    case RelationType::LT:
-        return snd == RelationType::LE || snd == RelationType::LT;
-    case RelationType::GE:
-    case RelationType::GT:
-        return snd == RelationType::GE || snd == RelationType::GT;
-    case RelationType::EQ:
-    case RelationType::NE:
-    case RelationType::PT:
-    case RelationType::PF:
-        // assert(0 && "unreachable");
-        return false;
-    }
-    assert(0 && "unreachable");
-    abort();
-}
-
-const RelationBits allRelations = ~0;
 
 #ifndef NDEBUG
 std::ostream &operator<<(std::ostream &out, Relations::Type r) {
@@ -243,40 +139,10 @@ std::ostream &operator<<(std::ostream &out, Relations::Type r) {
         out << "GT";
         break;
     case Relations::PT:
-        out << "POINTS_TO";
+        out << "PT";
         break;
     case Relations::PF:
-        out << "POINTED_FROM";
-        break;
-    }
-    return out;
-}
-
-std::ostream &operator<<(std::ostream &out, RelationType r) {
-    switch (r) {
-    case RelationType::EQ:
-        out << "EQ";
-        break;
-    case RelationType::NE:
-        out << "NE";
-        break;
-    case RelationType::LE:
-        out << "LE";
-        break;
-    case RelationType::LT:
-        out << "LT";
-        break;
-    case RelationType::GE:
-        out << "GE";
-        break;
-    case RelationType::GT:
-        out << "GT";
-        break;
-    case RelationType::PT:
-        out << "POINTS_TO";
-        break;
-    case RelationType::PF:
-        out << "POINTED_FROM";
+        out << "PF";
         break;
     }
     return out;
@@ -285,118 +151,119 @@ std::ostream &operator<<(std::ostream &out, RelationType r) {
 
 using RelationsMap = RelationsGraph::RelationsMap;
 
-bool strict(RelationType type) {
-    return type == RelationType::LT || type == RelationType::GT;
+bool strict(Relations::Type type) {
+    return type == Relations::LT || type == Relations::GT;
 }
 
-RelationType getNonStrict(RelationType type) {
+Relations::Type getNonStrict(Relations::Type type) {
     switch (type) {
-    case RelationType::LT:
-        return RelationType::LE;
-    case RelationType::GT:
-        return RelationType::GE;
+    case Relations::LT:
+        return Relations::LE;
+    case Relations::GT:
+        return Relations::GE;
     default:
         assert(0 && "no nonstrict variant");
         abort();
     }
 }
 
-RelationBits getAugmented(const RelationBits &relations) {
-    RelationBits augmented = relations;
-    for (RelationType type : {RelationType::LT, RelationType::GT}) {
-        augmented[toInt(type)] = augmented[toInt(getNonStrict(type))] =
-                augmented[toInt(type)] || augmented[toInt(getNonStrict(type))];
+Relations getAugmented(const Relations &relations) {
+    Relations augmented = relations;
+    for (Relations::Type type : {Relations::LT, Relations::GT}) {
+        if (augmented.has(type) || augmented.has(getNonStrict(type))) {
+            augmented.set(type);
+            augmented.set(getNonStrict(type));
+        }
     }
     return augmented;
 }
 
-RelationsMap filterResult(const RelationBits &relations,
+RelationsMap filterResult(const Relations &relations,
                           const RelationsMap &result) {
     RelationsMap filtered;
     std::copy_if(result.begin(), result.end(),
                  std::inserter(filtered, filtered.begin()),
                  [&relations](const auto &pair) {
-                     return (relations & pair.second).any();
+                     return relations.anyCommon(pair.second);
                  });
     return filtered;
 }
 
 RelationsMap getAugmentedRelated(const RelationsGraph &graph, Bucket &start,
-                                 const RelationBits &relations,
+                                 const Relations &relations,
                                  bool toFirstStrict) {
     RelationsMap result;
-    result[start].set(toInt(RelationType::EQ));
+    result[start].set(Relations::EQ);
 
     Bucket::BucketSet nestedVisited;
     for (auto it = graph.begin_related(start, relations);
          it != graph.end_related(start); ++it) {
-        result[it->to()].set(toInt(it->rel()));
+        result[it->to()].set(it->rel());
 
         if (!strict(it->rel()))
             continue;
 
-        result[it->to()].set(toInt(getNonStrict(it->rel())), false);
+        result[it->to()].set(getNonStrict(it->rel()), false);
 
         for (auto nestedIt =
                      it->to().begin(nestedVisited, relations, true, true);
              nestedIt != it->to().end(nestedVisited); ++nestedIt) {
-            if (!transitiveOver(it->rel(), nestedIt->rel()))
+            if (!Relations::transitiveOver(it->rel(), nestedIt->rel()))
                 continue;
             if (toFirstStrict)
-                result[nestedIt->to()].set(toInt(it->rel()), false);
+                result[nestedIt->to()].set(it->rel(), false);
             else
-                result[nestedIt->to()].set(toInt(it->rel()));
+                result[nestedIt->to()].set(it->rel());
         }
     }
     return result;
 }
 
 RelationsMap RelationsGraph::getRelated(Bucket &start,
-                                        const RelationBits &relations,
+                                        const Relations &relations,
                                         bool toFirstStrict) const {
-    RelationBits augmented = getAugmented(relations);
+    Relations augmented = getAugmented(relations);
 
     RelationsMap result =
             getAugmentedRelated(*this, start, augmented, toFirstStrict);
 
     for (auto &pair : result) {
-        addImplied(pair.second);
+        pair.second.addImplied();
     }
 
     return relations != augmented ? filterResult(relations, result)
                                   : std::move(result);
 }
 
-RelationBits fromMaybeBetween(const RelationsGraph &graph, Bucket &lt,
-                              Bucket &rt, RelationBits *maybeBetween) {
+Relations fromMaybeBetween(const RelationsGraph &graph, Bucket &lt, Bucket &rt,
+                           Relations *maybeBetween) {
     return maybeBetween ? *maybeBetween : graph.relationsBetween(lt, rt);
 }
 
-bool RelationsGraph::areRelated(Bucket &lt, RelationType type, Bucket &rt,
-                                RelationBits *maybeBetween) const {
-    RelationBits between = fromMaybeBetween(*this, lt, rt, maybeBetween);
-    return between[toInt(type)];
+bool RelationsGraph::areRelated(Bucket &lt, Relations::Type type, Bucket &rt,
+                                Relations *maybeBetween) const {
+    Relations between = fromMaybeBetween(*this, lt, rt, maybeBetween);
+    return between.has(type);
 }
 
-bool RelationsGraph::haveConflictingRelation(Bucket &lt, RelationType type,
+bool RelationsGraph::haveConflictingRelation(Bucket &lt, Relations::Type type,
                                              Bucket &rt,
-                                             RelationBits *maybeBetween) const {
+                                             Relations *maybeBetween) const {
     switch (type) {
-    case RelationType::EQ:
-    case RelationType::NE:
-    case RelationType::LT:
-    case RelationType::LE:
-    case RelationType::GT:
-    case RelationType::GE: {
-        RelationBits between = fromMaybeBetween(*this, lt, rt, maybeBetween);
-        return (between & conflicting(type)).any();
+    case Relations::EQ:
+    case Relations::NE:
+    case Relations::LT:
+    case Relations::LE:
+    case Relations::GT:
+    case Relations::GE: {
+        Relations between = fromMaybeBetween(*this, lt, rt, maybeBetween);
+        return between.conflictsWith(type);
     }
-    case RelationType::PT:
+    case Relations::PT:
         return lt.hasRelation(type) &&
-               haveConflictingRelation(lt.getRelated(type), RelationType::EQ,
-                                       rt);
-    case RelationType::PF:
-        return haveConflictingRelation(rt, inverted(type), lt);
+               haveConflictingRelation(lt.getRelated(type), Relations::EQ, rt);
+    case Relations::PF:
+        return haveConflictingRelation(rt, Relations::inverted(type), lt);
     }
     assert(0 && "unreachable");
     abort();
@@ -404,8 +271,8 @@ bool RelationsGraph::haveConflictingRelation(Bucket &lt, RelationType type,
 
 Bucket::BucketSet getIntersectingNonstrict(const RelationsGraph &graph,
                                            Bucket &lt, Bucket &rt) {
-    RelationsMap ltGE = graph.getRelated(lt, p(RelationType::GE));
-    RelationsMap rtLE = graph.getRelated(rt, p(RelationType::LE));
+    RelationsMap ltGE = graph.getRelated(lt, Relations().ge());
+    RelationsMap rtLE = graph.getRelated(rt, Relations().le());
 
     RelationsMap result;
     std::set_intersection(ltGE.begin(), ltGE.end(), rtLE.begin(), rtLE.end(),
@@ -421,43 +288,34 @@ Bucket::BucketSet getIntersectingNonstrict(const RelationsGraph &graph,
     return other;
 }
 
-RelationBits inverted(const RelationBits &other) {
-    RelationBits newBits;
-    for (size_t i = 0; i < allRelations.size(); ++i) {
-        newBits.set(toInt(inverted(toRelation(i))), other[i]);
-    }
-    return newBits;
-}
-
-void RelationsGraph::addRelation(Bucket &lt, RelationType type, Bucket &rt,
-                                 RelationBits *maybeBetween) {
-    RelationBits between = fromMaybeBetween(*this, lt, rt, maybeBetween);
+void RelationsGraph::addRelation(Bucket &lt, Relations::Type type, Bucket &rt,
+                                 Relations *maybeBetween) {
+    Relations between = fromMaybeBetween(*this, lt, rt, maybeBetween);
     if (areRelated(lt, type, rt, &between))
         return;
     assert(!haveConflictingRelation(lt, type, rt, &between));
 
     switch (type) {
-    case RelationType::EQ:
+    case Relations::EQ:
         return setEqual(lt, rt);
-    case RelationType::NE: {
-        for (RelationType rel : {RelationType::LT, RelationType::GT}) {
+    case Relations::NE: {
+        for (Relations::Type rel : {Relations::LT, Relations::GT}) {
             if (areRelated(lt, getNonStrict(rel), rt, &between)) {
                 unsetRelated(lt, getNonStrict(rel), rt);
                 return addRelation(lt, rel, rt, &between);
             }
         }
-        break; // jump after switch
     }
-    case RelationType::LT:
-        if (areRelated(lt, RelationType::LE, rt, &between))
-            unsetRelated(lt, RelationType::LE, rt);
+    case Relations::LT:
+        if (areRelated(lt, Relations::LE, rt, &between))
+            unsetRelated(lt, Relations::LE, rt);
         break; // jump after switch
-    case RelationType::LE:
-        if (areRelated(lt, RelationType::NE, rt, &between)) {
-            unsetRelated(lt, RelationType::NE, rt);
-            return addRelation(lt, RelationType::LT, rt, &between);
+    case Relations::LE:
+        if (areRelated(lt, Relations::NE, rt, &between)) {
+            unsetRelated(lt, Relations::NE, rt);
+            return addRelation(lt, Relations::LT, rt, &between);
         }
-        if (areRelated(lt, RelationType::GE, rt, &between)) {
+        if (areRelated(lt, Relations::GE, rt, &between)) {
             Bucket::BucketSet intersect =
                     getIntersectingNonstrict(*this, lt, rt);
             Bucket &first = *intersect.begin();
@@ -467,35 +325,16 @@ void RelationsGraph::addRelation(Bucket &lt, RelationType type, Bucket &rt,
             return;
         }
         break; // jump after switch
-    case RelationType::PT:
+    case Relations::PT:
         if (lt.hasRelation(type))
-            return addRelation(lt.getRelated(type), RelationType::EQ, rt);
+            return addRelation(lt.getRelated(type), Relations::EQ, rt);
         break; // jump after switch
-    case RelationType::GT:
-    case RelationType::GE:
-    case RelationType::PF: {
-        RelationBits betweenInverted = inverted(between);
-        return addRelation(rt, inverted(type), lt, &betweenInverted);
+    case Relations::GT:
+    case Relations::GE:
+    case Relations::PF: {
+        between.invert();
+        return addRelation(rt, Relations::inverted(type), lt, &between);
     } break; // jump after switch
-    case RelationType::LT:
-        if (areRelated(lt, RelationType::LE, rt, &between))
-            unsetRelated(lt, RelationType::LE, rt);
-        break; // jump after switch
-    case RelationType::LE:
-        if (areRelated(lt, RelationType::NE, rt, &between)) {
-            unsetRelated(lt, RelationType::NE, rt);
-            return addRelation(lt, RelationType::LT, rt, &between);
-        }
-        if (areRelated(lt, RelationType::GE, rt, &between)) {
-            Bucket::BucketSet intersect =
-                    getIntersectingNonstrict(*this, lt, rt);
-            Bucket &first = *intersect.begin();
-            for (auto it = std::next(intersect.begin()); it != intersect.end();
-                 ++it)
-                setEqual(first, *it);
-            return;
-        }
-        break; // jump after switch
     case RelationType::PT:
         if (lt.hasRelation(type))
             return addRelation(lt.getRelated(type), RelationType::EQ, rt);
