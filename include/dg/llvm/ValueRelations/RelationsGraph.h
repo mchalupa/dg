@@ -28,6 +28,10 @@ struct Relations {
     static Type negated(Type type);
     static bool transitiveOver(Type one, Type two);
     static Relations conflicting(Type type);
+    static bool isStrict(Type type);
+    static bool isNonStrict(Type type);
+    static Type getStrict(Type type);
+    static Type getNonStrict(Type type);
 
     // ************** bitset stuff **************
     Relations() = default;
