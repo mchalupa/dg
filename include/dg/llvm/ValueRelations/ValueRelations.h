@@ -412,7 +412,8 @@ struct ValueRelations {
     RelGraph::RelationsMap getRelated(const X &val,
                                       const Relations &rels) const {
         HandlePtr mH = maybeGet(val);
-        assert(mH);
+        if (!mH)
+            return {};
         return graph.getRelated(*mH, rels);
     }
 
