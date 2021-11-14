@@ -122,19 +122,16 @@ struct ValueRelations {
         RelatedIterator bucketIt;
         ValIterator valueIt;
 
-        std::pair<V, Relations::Type> current; // Relations>;
+        std::pair<V, Relations> current;
 
         bool isEnd = false;
-        bool invert = false; // TODO get rid of
 
         const VectorSet<V> &getCurrentEqual() const {
             return vr.bucketToVals.find(bucketIt->first)->second;
         }
 
         void updateCurrent() {
-            Relations::Type rel = bucketIt->second.get();
-            current = std::make_pair(*valueIt,
-                                     invert ? Relations::inverted(rel) : rel);
+            current = std::make_pair(*valueIt, bucketIt->second);
         }
 
         void nextViableValue() {
@@ -161,10 +158,10 @@ struct ValueRelations {
         RelatedValueIterator(const ValueRelations &v) : vr(v), isEnd(true) {}
         // for begin iterator
         RelatedValueIterator(const ValueRelations &v, Handle start,
-                             const Relations &allowedEdges, bool i)
+                             const Relations &allowedEdges)
                 : vr(v), related(vr.graph.getRelated(start, allowedEdges)),
-                  bucketIt(related.begin()), valueIt(getCurrentEqual().begin()),
-                  invert(i) {
+                  bucketIt(related.begin()),
+                  valueIt(getCurrentEqual().begin()) {
             assert(allowedEdges.has(Relations::EQ) &&
                    "at least one related bucket");
             nextViableValue();
@@ -384,19 +381,12 @@ struct ValueRelations {
     }
 
     // *************************** iterators ****************************** //
-    rel_iterator begin_related(V val, const Relations &rels = restricted,
-                               bool invert = false) const;
+    rel_iterator begin_related(V val, const Relations &rels = restricted) const;
     rel_iterator end_related(V val) const;
 
     RelGraph::iterator begin_related(Handle h,
                                      const Relations &rels = restricted) const;
     RelGraph::iterator end_related(Handle h) const;
-
-    rel_iterator begin_all(V val) const;
-    rel_iterator end_all(V val) const;
-
-    rel_iterator begin_lesserEqual(V val) const;
-    rel_iterator end_lesserEqual(V val) const;
 
     plain_iterator begin() const;
     plain_iterator end() const;

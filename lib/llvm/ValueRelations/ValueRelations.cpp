@@ -62,10 +62,10 @@ Relations ValueRelations::_between(V lt, V rt) const {
 
 // *************************** iterators ****************************** //
 ValueRelations::rel_iterator
-ValueRelations::begin_related(V val, const Relations &rels, bool invert) const {
+ValueRelations::begin_related(V val, const Relations &rels) const {
     assert(valToBucket.find(val) != valToBucket.end());
     Handle h = valToBucket.find(val)->second;
-    return rel_iterator(*this, h, rels, invert);
+    return rel_iterator(*this, h, rels);
 }
 
 ValueRelations::rel_iterator ValueRelations::end_related(V /*val*/) const {
@@ -79,22 +79,6 @@ ValueRelations::begin_related(Handle h, const Relations &rels) const {
 
 ValueRelations::RelGraph::iterator ValueRelations::end_related(Handle h) const {
     return graph.end_related(h);
-}
-
-ValueRelations::rel_iterator ValueRelations::begin_all(V val) const {
-    return begin_related(val, comparative, true);
-}
-
-ValueRelations::rel_iterator ValueRelations::end_all(V val) const {
-    return end_related(val);
-}
-
-ValueRelations::rel_iterator ValueRelations::begin_lesserEqual(V val) const {
-    return begin_related(val, Relations().eq().sgt().sge().ugt().uge(), true);
-}
-
-ValueRelations::rel_iterator ValueRelations::end_lesserEqual(V val) const {
-    return end_related(val);
 }
 
 ValueRelations::plain_iterator ValueRelations::begin() const {
