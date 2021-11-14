@@ -44,11 +44,13 @@ class Bucket {
 
     // purely for storing in a set
     friend bool operator<(const Bucket &lt, const Bucket &rt) {
-        return &lt < &rt;
+        return lt.id < rt.id;
     }
 
   public:
-    Bucket() {
+    const size_t id;
+
+    Bucket(size_t i) : id(i) {
         for (size_t i = 0; i < allRelations.size(); ++i)
             relatedBuckets[toRelation(i)];
     };
@@ -100,7 +102,7 @@ class Bucket {
     }
 
     friend bool operator==(const Bucket &lt, const Bucket &rt) {
-        return &lt == &rt;
+        return lt.id == rt.id;
     }
 
     friend bool operator!=(const Bucket &lt, const Bucket &rt) {
@@ -335,6 +337,7 @@ class RelationsGraph {
     //*********************** end iterator stuff **********************
 
     UniqueBucketSet buckets;
+    size_t nextId = 0;
 
     void setEqual(Bucket &to, Bucket &from) {
         to.merge(from);
@@ -401,7 +404,7 @@ class RelationsGraph {
                                  RelationBits *maybeBetween = nullptr) const;
 
     Bucket &getNewBucket() {
-        auto pair = buckets.emplace(new Bucket());
+        auto pair = buckets.emplace(new Bucket(++nextId));
         return **pair.first;
     }
 };
