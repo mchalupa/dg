@@ -5,8 +5,14 @@
 
 using namespace dg::vr;
 
+struct Dummy {
+    void areMerged(const Bucket &, const Bucket &) {}
+};
+
+using RelGraph = RelationsGraph<Dummy>;
+
 using CollectedEdges = std::vector<Bucket::RelationEdge>;
-using RelationsMap = RelationsGraph::RelationsMap;
+using RelationsMap = RelGraph::RelationsMap;
 
 std::string dump(const CollectedEdges &edges) {
     std::ostringstream out;
@@ -27,29 +33,28 @@ std::string dump(const RelationsMap &map) {
     return out.str();
 }
 
-CollectedEdges collect(RelationsGraph::iterator begin,
-                       RelationsGraph::iterator end) {
+CollectedEdges collect(RelGraph::iterator begin, RelGraph::iterator end) {
     CollectedEdges result;
 
     std::copy(begin, end, std::back_inserter(result));
     return result;
 }
 
-void checkSize(const CollectedEdges &result, const RelationsGraph &graph,
+void checkSize(const CollectedEdges &result, const RelGraph &graph,
                size_t expectedSize) {
     INFO("result " << dump(result));
     INFO("graph:\n" << graph);
     CHECK(result.size() == expectedSize);
 }
 
-void reportSet(RelationsGraph &graph, const Bucket &one, Relations::Type rel,
+void reportSet(RelGraph &graph, const Bucket &one, Relations::Type rel,
                const Bucket &two) {
     INFO("setting " << one.id << " " << rel << " " << two.id);
     graph.addRelation(one, rel, two);
     INFO("done");
 }
 
-void checkEdges(const RelationsGraph &graph, size_t relationsSet) {
+void checkEdges(const RelGraph &graph, size_t relationsSet) {
     SECTION("all") {
         CollectedEdges result =
                 collect(graph.begin(allRelations, false), graph.end());
@@ -61,7 +66,7 @@ void checkEdges(const RelationsGraph &graph, size_t relationsSet) {
     }
 }
 
-void checkRelations(const RelationsGraph &graph, const Bucket &start,
+void checkRelations(const RelGraph &graph, const Bucket &start,
                     size_t expectedSize) {
     INFO("explored from " << start.id);
     CollectedEdges result = collect(graph.begin_related(start, allRelations),
@@ -86,7 +91,7 @@ void checkRelations(const RelationsMap &real, const RelationsMap &expected) {
     CHECK(real.size() == expected.size());
 }
 
-void checkRelations(const RelationsGraph &graph, const Bucket &start,
+void checkRelations(const RelGraph &graph, const Bucket &start,
                     const RelationsMap &expected) {
     INFO("relations from " << start.id);
     RelationsMap real = graph.getRelated(start, allRelations);
@@ -122,7 +127,8 @@ bool inferrs(Relations::Type one, Relations::Type two) {
 #define GEN_REL() GENERATE(from_range(Relations::all))
 
 TEST_CASE("edge iterator") {
-    RelationsGraph graph;
+    Dummy d;
+    RelGraph graph(d);
 
     SECTION("no nodes") { CHECK(graph.begin() == graph.end()); }
 
@@ -255,7 +261,8 @@ TEST_CASE("edge iterator") {
 }
 
 TEST_CASE("testing relations") {
-    RelationsGraph graph;
+    Dummy d;
+    RelGraph graph(d);
 
     const Bucket &one = graph.getNewBucket();
     const Bucket &two = graph.getNewBucket();
@@ -303,7 +310,8 @@ TEST_CASE("testing relations") {
 }
 
 TEST_CASE("big graph") {
-    RelationsGraph graph;
+    Dummy d;
+    RelGraph graph(d);
 
     const Bucket &one = graph.getNewBucket();
     const Bucket &two = graph.getNewBucket();
