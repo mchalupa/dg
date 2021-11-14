@@ -62,7 +62,6 @@ struct ValueRelations {
     V getAny(Handle h) const;
     ValueRelations::C getAnyConst(Handle h) const;
 
-    std::vector<V> getDirectlyRelated(V val, const Relations &rels) const;
     std::pair<ValueRelations::C, Relations> getBound(Handle h,
                                                      Relations rel) const;
     std::pair<ValueRelations::C, Relations> getBound(V val,
@@ -426,8 +425,7 @@ struct ValueRelations {
         return graph.getRelated(*mH, rels);
     }
 
-    std::vector<V> getDirectlyLesser(V val) const;
-    std::vector<V> getDirectlyGreater(V val) const;
+    std::vector<V> getDirectlyRelated(V val, const Relations &rels) const;
 
     template <typename X>
     std::pair<C, Relations> getBound(const X &val, Relations::Type rel) const {

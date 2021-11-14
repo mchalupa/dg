@@ -150,14 +150,6 @@ ValueRelations::getDirectlyRelated(V val, const Relations &rels) const {
     return result;
 }
 
-std::vector<ValueRelations::V> ValueRelations::getDirectlyLesser(V val) const {
-    return getDirectlyRelated(val, Relations().sgt().ugt());
-}
-
-std::vector<ValueRelations::V> ValueRelations::getDirectlyGreater(V val) const {
-    return getDirectlyRelated(val, Relations().slt().ult());
-}
-
 std::pair<ValueRelations::C, Relations>
 ValueRelations::getBound(Handle h, Relations rels) const {
     RelationsMap related = graph.getRelated(h, rels);
@@ -237,15 +229,22 @@ bool ValueRelations::compare(C lt, Relations rels, C rt) {
 }
 
 Relations ValueRelations::compare(C lt, C rt) {
-    int64_t iLt = lt->getSExtValue();
-    int64_t iRt = rt->getSExtValue();
+    // ignore bool values
+    if ((lt->getBitWidth() == 1 || rt->getBitWidth() == 1) &&
+        lt->getBitWidth() != rt->getBitWidth())
+        return Relations();
+    int64_t isLt = lt->getSExtValue();
+    int64_t isRt = rt->getSExtValue();
     Relations result;
-    if (iLt < iRt)
-        result.lt();
-    else if (iLt > iRt)
-        result.gt();
+    if (isLt < isRt)
+        result.slt();
+    else if (isLt > isRt)
+        result.sgt();
     else
         result.eq();
+
+    // possible to collect unsigned relations between constants here
+
     return result.addImplied();
 }
 

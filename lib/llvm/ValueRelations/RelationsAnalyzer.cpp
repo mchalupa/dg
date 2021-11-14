@@ -221,20 +221,14 @@ bool RelationsAnalyzer::solvesSameType(ValueRelations &graph,
 
 void RelationsAnalyzer::solvesDiffOne(ValueRelations &graph, V param,
                                       const llvm::BinaryOperator *op,
-                                      bool getLesser) {
-    std::vector<V> sample = getLesser ? graph.getDirectlyLesser(param)
-                                      : graph.getDirectlyGreater(param);
+                                      Relations::Type rel) {
+    std::vector<V> sample =
+            graph.getDirectlyRelated(param, Relations().set(rel));
+    for (V val : sample)
+        assert(graph.are(param, rel, val));
 
-    for (V val : sample) {
-        assert(graph.are(val, getLesser ? Relations::SLT : Relations::SGT,
-                         param));
-    }
-
-    for (V value : sample)
-        if (getLesser)
-            graph.setLesserEqual(value, op);
-        else
-            graph.setLesserEqual(op, value);
+    for (V val : sample)
+        graph.set(op, Relations::getNonStrict(rel), val);
 }
 
 bool RelationsAnalyzer::operandsEqual(
@@ -341,7 +335,7 @@ void RelationsAnalyzer::addGen(ValueRelations &graph,
 
         // lesser < param  ==>  lesser <= param + (-1)
         if (c1->isMinusOne())
-            solvesDiffOne(graph, param, add, true);
+            solvesDiffOne(graph, param, add, Relations::SGT);
 
     } else {
         // c1 > 0 => param < param + c1
@@ -349,7 +343,7 @@ void RelationsAnalyzer::addGen(ValueRelations &graph,
 
         // param < greater => param + 1 <= greater
         if (c1->isOne())
-            solvesDiffOne(graph, param, add, false);
+            solvesDiffOne(graph, param, add, Relations::SLT);
     }
 
     const llvm::ConstantInt *constBound = graph.getLesserEqualBound(param);
@@ -395,7 +389,7 @@ void RelationsAnalyzer::subGen(ValueRelations &graph,
 
         // param < greater ==> param - (-1) <= greater
         if (c2->isMinusOne())
-            solvesDiffOne(graph, param, sub, false);
+            solvesDiffOne(graph, param, sub, Relations::SLT);
 
     } else {
         // c1 > 0 => param - c1 < param
@@ -403,7 +397,7 @@ void RelationsAnalyzer::subGen(ValueRelations &graph,
 
         // lesser < param  ==>  lesser <= param - 1
         if (c2->isOne())
-            solvesDiffOne(graph, param, sub, true);
+            solvesDiffOne(graph, param, sub, Relations::SGT);
     }
 
     const llvm::ConstantInt *constBound = graph.getLesserEqualBound(param);
