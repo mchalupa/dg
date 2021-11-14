@@ -152,13 +152,30 @@ bool RelationsAnalyzer::mayOverwrite(I inst, V address) const {
     if (!graph.contains(address))
         return !hasKnownOrigin(address) || mayHaveAlias(address);
 
-    if (!graph.contains(memoryPtr) || !hasKnownOrigin(graph, memoryPtr))
+    if (!hasKnownOrigin(memoryPtr) &&
+        (!graph.contains(memoryPtr) || !hasKnownOrigin(graph, memoryPtr)))
         return !hasKnownOrigin(graph, address) || mayHaveAlias(graph, address);
 
     if (mayHaveAlias(memoryPtr))
         return !hasKnownOrigin(graph, address);
 
     return false;
+}
+
+const llvm::Value *getArgument(const ValueRelations &graph,
+                               ValueRelations::Handle h) {
+    const llvm::Value *result = nullptr;
+    for (auto handleRel : graph.getRelated(h, Relations().sle().sge())) {
+        if (handleRel.second.has(Relations::EQ))
+            continue;
+        const llvm::Argument *arg =
+                graph.getInstance<llvm::Argument>(handleRel.first);
+        if (arg) {
+            assert(!result);
+            result = arg;
+        }
+    }
+    return result;
 }
 
 // ************************ operation helpers ************************* //
@@ -920,6 +937,27 @@ void RelationsAnalyzer::mergeRelationsByPointedTo(VRLocation &loc) {
             else
                 newGraph.erasePlaceholderBucket(placeholder);
         }
+
+        if (!predGraph.hasEqual(it->from())) {
+            V arg = getArgument(predGraph, it->from());
+            if (!arg)
+                continue;
+            std::vector<const VRLocation *> changeLocations =
+                    getChangeLocations(loc, arg);
+
+            if (changeLocations.size() == 1) {
+                Relations between = predGraph.between(arg, it->from());
+                assert(!between.has(Relations::EQ));
+                auto borderH =
+                        newGraph.getCorrespondingBorder(predGraph, it->from());
+                if (!borderH)
+                    borderH = &newGraph.newPlaceholderBucket();
+
+                newGraph.set(arg, between, *borderH);
+                for (V to : predGraph.getEqual(it->to()))
+                    newGraph.set(*borderH, Relations::PT, to);
+            }
+        }
     }
 }
 
@@ -949,22 +987,6 @@ void RelationsAnalyzer::processInstruction(ValueRelations &graph, I inst) {
     }
 }
 
-const llvm::Value *getArgument(const ValueRelations &graph,
-                               ValueRelations::Handle h) {
-    const llvm::Value *result = nullptr;
-    for (auto handleRel : graph.getRelated(h, Relations().sle().sge())) {
-        if (handleRel.second.has(Relations::EQ))
-            continue;
-        const llvm::Argument *arg =
-                graph.getInstance<llvm::Argument>(handleRel.first);
-        if (arg) {
-            assert(!result);
-            result = arg;
-        }
-    }
-    return result;
-}
-
 void RelationsAnalyzer::rememberValidated(const ValueRelations &prev,
                                           ValueRelations &graph, I inst) const {
     assert(&prev == &codeGraph.getVRLocation(inst).relations);
@@ -978,7 +1000,7 @@ void RelationsAnalyzer::rememberValidated(const ValueRelations &prev,
             }
         }
 
-        if (!prev.hasEqual(it->from()) &&
+        if (prev.getEqual(it->from()).empty() &&
             !it->from().hasRelation(Relations::PF)) {
             V arg = getArgument(prev, it->from());
             if (arg && !mayOverwrite(inst, arg)) {
