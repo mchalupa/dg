@@ -211,6 +211,6 @@ target_link_libraries(ptset-benchmark PRIVATE dganalysis dgpta)
 # --------------------------------------------------
 add_catch_test(value-relations-test.cpp)
 #message(${CMAKE_SOURCE_DIR}/include/dg/llvm/ValueRelations/)
-target_sources(value-relations-test PRIVATE ${CMAKE_SOURCE_DIR}/include/dg/llvm/ValueRelations/RelationsGraph.cpp)
+target_sources(value-relations-test PRIVATE ${CMAKE_SOURCE_DIR}/include/dg/llvm/ValueRelations/Relations.cpp)
 target_link_libraries(value-relations-test PRIVATE dganalysis)
 target_compile_options(value-relations-test PRIVATE -Wall -Wextra -pedantic -g ${COLORS})

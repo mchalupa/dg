@@ -1,13 +1,10 @@
-#ifndef DG_LLVM_VALUE_RELATIONS_RELATION_BUCKETS_H_
-#define DG_LLVM_VALUE_RELATIONS_RELATION_BUCKETS_H_
+#ifndef DG_LLVM_VALUE_RELATIONS_RELATIONS_GRAPH_H_
+#define DG_LLVM_VALUE_RELATIONS_RELATIONS_GRAPH_H_
 
 #ifndef NDEBUG
 #include <iostream>
 #endif
 
-#include <algorithm>
-#include <array>
-#include <bitset>
 #include <cassert>
 #include <functional>
 #include <map>
@@ -15,458 +12,17 @@
 #include <set>
 #include <stack>
 
+#include "Bucket.h"
+
 namespace dg {
 namespace vr {
 
-struct Relations {
-    // ************** type stuff **************
-    enum Type { EQ, NE, LE, LT, GE, GT, PT, PF };
-    static const size_t total = 8;
-    static const std::array<Type, total> all;
-
-    static Type inverted(Type type);
-    static Type negated(Type type);
-    static bool transitiveOver(Type one, Type two);
-    static Relations conflicting(Type type);
-    static bool isStrict(Type type);
-    static bool isNonStrict(Type type);
-    static Type getStrict(Type type);
-    static Type getNonStrict(Type type);
-
-    // ************** bitset stuff **************
-    Relations() = default;
-    explicit Relations(unsigned long long val) : bits(val) {}
-
-    bool has(Type type) const { return bits[type]; }
-    Relations &set(Type t, bool v = true) {
-        bits.set(t, v);
-        return *this;
-    }
-
-    Relations &eq() { return set(EQ); }
-    Relations &ne() { return set(NE); }
-    Relations &le() { return set(LE); }
-    Relations &lt() { return set(LT); }
-    Relations &ge() { return set(GE); }
-    Relations &gt() { return set(GT); }
-    Relations &pt() { return set(PT); }
-    Relations &pf() { return set(PF); }
-
-    Relations &addImplied();
-    Relations &invert();
-    bool conflictsWith(Type type) const { return anyCommon(conflicting(type)); }
-    bool anyCommon(const Relations &other) const {
-        return (bits & other.bits).any();
-    }
-
-    friend bool operator==(const Relations &lt, const Relations &rt) {
-        return lt.bits == rt.bits;
-    }
-    friend bool operator!=(const Relations &lt, const Relations &rt) {
-        return !(lt == rt);
-    }
-
-#ifndef NDEBUG
-    friend std::ostream &operator<<(std::ostream &out, const Relations &rels);
-#endif
+template <typename T>
+struct RelationsGraph {
+    using RelationsMap =
+            std::map<std::reference_wrapper<const Bucket>, Relations>;
 
   private:
-    std::bitset<total> bits;
-};
-
-const Relations allRelations(~0);
-const Relations comparative(1 << Relations::NE | 1 << Relations::LT |
-                            1 << Relations::LE | 1 << Relations::GT |
-                            1 << Relations::GE);
-
-#ifndef NDEBUG
-std::ostream &operator<<(std::ostream &out, Relations::Type r);
-#endif
-
-struct Bucket {
-    using BucketSet = std::set<std::reference_wrapper<Bucket>>;
-    using ConstBucketSet = std::set<std::reference_wrapper<const Bucket>>;
-    const size_t id;
-
-    class RelationEdge {
-        std::reference_wrapper<const Bucket> _from;
-        Relations::Type _rel;
-        std::reference_wrapper<const Bucket> _to;
-
-        friend bool operator==(const RelationEdge &lt, const RelationEdge &rt) {
-            return lt.from() == rt.from() && lt.rel() == rt.rel() &&
-                   lt.to() == rt.to();
-        }
-
-        friend bool operator!=(const RelationEdge &lt, const RelationEdge &rt) {
-            return !(lt == rt);
-        }
-
-        // purely for placement in set
-        friend bool operator<(const RelationEdge &lt, const RelationEdge &rt) {
-            if (lt.from() != rt.from())
-                return lt.from() < rt.from();
-            if (lt.rel() != rt.rel())
-                return lt.rel() < rt.rel();
-            return lt.to() < rt.to();
-        }
-
-      public:
-        RelationEdge(const Bucket &f, Relations::Type r, const Bucket &t)
-                : _from(f), _rel(r), _to(t) {}
-
-        const Bucket &from() const { return _from; }
-        Relations::Type rel() const { return _rel; }
-        const Bucket &to() const { return _to; }
-
-        RelationEdge inverted() const {
-            return RelationEdge(_to, Relations::inverted(_rel), _from);
-        }
-
-#ifndef NDEBUG
-        friend std::ostream &operator<<(std::ostream &out,
-                                        const RelationEdge &edge) {
-            out << edge.from().id << " " << edge.rel() << " " << edge.to().id;
-            return out;
-        }
-#endif
-    };
-
-    class DirectRelIterator {
-        using SetIterator = typename BucketSet::const_iterator;
-        using RelationIterator = decltype(Relations::all)::const_iterator;
-        friend class EdgeIterator;
-
-        RelationIterator relationIt;
-        SetIterator bucketIt;
-
-        RelationEdge current;
-
-        const BucketSet &relationSet() const {
-            return current.from().relatedBuckets[*relationIt];
-        }
-
-        void updateCurrent() {
-            current = RelationEdge(current.from(), *relationIt, *bucketIt);
-        }
-
-      public:
-        // for end iterator
-        DirectRelIterator(const Bucket &b, RelationIterator r)
-                : relationIt(r), current(b, Relations::EQ, b) {}
-        // for begin iterator
-        DirectRelIterator(const Bucket &b)
-                : relationIt(Relations::all.begin()),
-                  bucketIt(b.relatedBuckets[*relationIt].begin()),
-                  current(b, *relationIt, *bucketIt) {
-            nextViableEdge();
-        }
-
-        bool nextViableEdge() {
-            while (bucketIt == relationSet().end()) {
-                ++relationIt;
-                if (relationIt == Relations::all.end())
-                    return false;
-                bucketIt = relationSet().begin();
-            }
-            updateCurrent();
-            return true;
-        }
-
-        DirectRelIterator &inc() {
-            ++bucketIt;
-            return *this;
-        }
-        DirectRelIterator &operator++() {
-            ++bucketIt;
-            nextViableEdge();
-            return *this;
-        }
-        DirectRelIterator operator++(int) {
-            auto copy = *this;
-            ++*this;
-            return copy;
-        }
-
-        friend bool operator==(const DirectRelIterator &lt,
-                               const DirectRelIterator &rt) {
-            return lt.current.from() == rt.current.from() &&
-                   lt.relationIt ==
-                           rt.relationIt; // && lt.bucketIt == rt.bucketIt;
-        }
-        friend bool operator!=(const DirectRelIterator &lt,
-                               const DirectRelIterator &rt) {
-            return !(lt == rt);
-        }
-
-        const RelationEdge &operator*() const { return current; }
-        const RelationEdge *operator->() const { return &current; }
-
-#ifndef NDEBUG
-        friend std::ostream &operator<<(std::ostream &out,
-                                        const DirectRelIterator &it) {
-            out << *it;
-            return out;
-        }
-#endif
-    };
-
-  private:
-    // R -> { a } such that (this, a) \in R (e.g. LE -> { a } such that this LE
-    // a)
-    std::array<BucketSet, Relations::total> relatedBuckets;
-
-    // purely for storing in a set
-    friend bool operator<(const Bucket &lt, const Bucket &rt) {
-        return lt.id < rt.id;
-    }
-
-    friend class RelationsGraph;
-
-    Bucket(size_t i) : id(i) { relatedBuckets[Relations::EQ].emplace(*this); }
-
-    void merge(const Bucket &other) {
-        for (Relations::Type type : Relations::all) {
-            if (type == Relations::EQ)
-                continue;
-            for (Bucket &related : other.relatedBuckets[type]) {
-                if (related != *this)
-                    setRelated(*this, type, related);
-            }
-        }
-    }
-
-    void disconnect() {
-        for (Relations::Type type : Relations::all) {
-            if (type == Relations::EQ) {
-                assert(relatedBuckets[type].size() == 1);
-                relatedBuckets[type].clear();
-            }
-            for (auto it = relatedBuckets[type].begin();
-                 it != relatedBuckets[type].end();
-                 /*incremented by erase*/) {
-                it->get().relatedBuckets[Relations::inverted(type)].erase(
-                        *this);
-                it = relatedBuckets[type].erase(it);
-            }
-        }
-        assert(!hasAnyRelation());
-    }
-
-    friend void setRelated(Bucket &lt, Relations::Type type, Bucket &rt) {
-        assert(lt != rt && "no reflexive relations");
-        lt.relatedBuckets[type].emplace(rt);
-        rt.relatedBuckets[Relations::inverted(type)].emplace(lt);
-    }
-
-    friend bool unsetRelated(Bucket &lt, Relations::Type type, Bucket &rt) {
-        auto &ltRelated = lt.relatedBuckets[type];
-        auto &rtRelated = rt.relatedBuckets[Relations::inverted(type)];
-
-        auto found = ltRelated.find(rt);
-        if (found == ltRelated.end()) {
-            assert(rtRelated.find(lt) == rtRelated.end());
-            return false;
-        }
-
-        ltRelated.erase(found);
-        rtRelated.erase(lt);
-        return true;
-    }
-
-    bool unset(Relations::Type rel) {
-        bool changed = false;
-        for (Bucket &other : relatedBuckets[rel]) {
-            changed |= unsetRelated(*this, rel, other);
-        }
-        return changed;
-    }
-
-    bool unset(const Relations &rels) {
-        bool changed = false;
-        for (Relations::Type rel : Relations::all) {
-            if (rels.has(rel))
-                changed |= unset(rel);
-        }
-        return changed;
-    }
-
-  public:
-    const Bucket &getRelated(Relations::Type type) const {
-        assert(!relatedBuckets[type].empty());
-        return *relatedBuckets[type].begin();
-    }
-
-    bool hasRelation(Relations::Type type) const {
-        return !relatedBuckets[type].empty();
-    }
-
-    bool hasAnyRelation(Relations rels) const {
-        for (Relations::Type rel : Relations::all) {
-            if (rels.has(rel) && hasRelation(rel))
-                return true;
-        }
-        return false;
-    }
-
-    bool hasAnyRelation() const {
-        return hasAnyRelation(
-                Relations(allRelations).set(Relations::EQ, false));
-    }
-
-    friend bool operator==(const Bucket &lt, const Bucket &rt) {
-        return lt.id == rt.id;
-    }
-
-    friend bool operator!=(const Bucket &lt, const Bucket &rt) {
-        return !(lt == rt);
-    }
-
-    /********************** begin iterator stuff *********************/
-
-    struct EdgeIterator {
-        Relations allowedEdges;
-        bool undirectedOnly;
-        bool relationsFocused;
-        using Visited = std::set<RelationEdge>;
-
-      private:
-        std::vector<DirectRelIterator> stack;
-        std::reference_wrapper<Visited> visited;
-
-        bool shouldFollowThrough() const {
-            if (stack.size() < 2)
-                return true;
-            Relations::Type prev = (*std::next(stack.rbegin()))->rel();
-            return Relations::transitiveOver(prev, stack.back()->rel());
-        }
-
-        bool isViable() {
-            return visited.get().find(*stack.back()) == visited.get().end() &&
-                   allowedEdges.has(stack.back()->rel()) &&
-                   (!relationsFocused || shouldFollowThrough());
-        }
-
-        bool nextViableTopEdge() {
-            while (stack.back().nextViableEdge()) {
-                if (isViable()) {
-                    visited.get().emplace(*stack.back());
-                    if (undirectedOnly)
-                        visited.get().emplace(stack.back()->inverted());
-                    return true;
-                }
-                stack.back().inc();
-            }
-            return false;
-        }
-
-        void nextViableEdge() {
-            while (!stack.empty() && !nextViableTopEdge()) {
-                stack.pop_back();
-            }
-        }
-
-      public:
-        // for end iterator
-        EdgeIterator(Visited &v) : visited(v) {}
-        // for begin iterator
-        EdgeIterator(const Bucket &start, Visited &v, const Relations &a,
-                     bool u, bool r)
-                : allowedEdges(a), undirectedOnly(u), relationsFocused(r),
-                  visited(v) {
-            assert(start.relatedBuckets.begin() != start.relatedBuckets.end() &&
-                   "at least one relation");
-
-            stack.emplace_back(start);
-            nextViableEdge();
-        }
-
-        friend bool operator==(const EdgeIterator &lt, const EdgeIterator &rt) {
-            return lt.stack == rt.stack;
-        }
-        friend bool operator!=(const EdgeIterator &lt, const EdgeIterator &rt) {
-            return !(lt == rt);
-        }
-
-        EdgeIterator &operator++() {
-            DirectRelIterator current = stack.back();
-            stack.pop_back();
-
-            const Bucket &to = current->to();
-
-            // plan return to next successor of "from" bucket
-            current.inc(); // dont use ++, because incoming relation is needed
-                           // on the stack
-            stack.emplace_back(current);
-
-            // plan visit to first successor of "to" bucket if unexplored so far
-            stack.emplace_back(to);
-            nextViableEdge();
-
-            return *this;
-        }
-
-        EdgeIterator &skipSuccessors() {
-            stack.back().inc();
-            nextViableEdge();
-            return *this;
-        }
-
-        void setVisited(Visited &v) { visited = v; }
-
-        EdgeIterator operator++(int) {
-            auto copy = *this;
-            ++*this;
-            return copy;
-        }
-
-        const RelationEdge &operator*() const { return *stack.back(); }
-        const RelationEdge *operator->() const { return &(*stack.back()); }
-    };
-
-  public:
-    using iterator = EdgeIterator;
-
-    iterator begin(iterator::Visited &visited, const Relations &relations,
-                   bool undirectedOnly, bool relationsFocused) const {
-        return iterator(*this, visited, relations, undirectedOnly,
-                        relationsFocused);
-    }
-
-    iterator begin(iterator::Visited &visited) const {
-        return begin(visited, allRelations, true, true);
-    }
-
-    iterator end(iterator::Visited &visited) const { return iterator(visited); }
-
-    DirectRelIterator begin() const { return DirectRelIterator(*this); }
-
-    DirectRelIterator end() const {
-        return DirectRelIterator(*this, Relations::all.end());
-    }
-
-    /*********************** end iterator stuff **********************/
-
-#ifndef NDEBUG
-    friend std::ostream &operator<<(std::ostream &out, const Bucket &bucket) {
-        out << bucket.id << " | ";
-        for (Relations::Type type : Relations::all) {
-            if (bucket.hasRelation(type)) {
-                out << type << " - ";
-                for (Bucket &related : bucket.relatedBuckets[type])
-                    out << related.id
-                        << (related == *bucket.relatedBuckets[type].rbegin()
-                                    ? ""
-                                    : ", ");
-                out << "; ";
-            }
-        }
-        return out;
-    }
-#endif
-};
-
-class RelationsGraph {
     using UniqueBucketSet = std::set<std::unique_ptr<Bucket>>;
 
     class EdgeIterator {
@@ -564,11 +120,13 @@ class RelationsGraph {
 
     //*********************** end iterator stuff **********************
 
+    T &reported;
     UniqueBucketSet buckets;
     size_t lastId = 0;
 
     bool setEqual(Bucket &to, Bucket &from) {
         assert(to != from);
+        reported.areMerged(to, from);
         to.merge(from);
         erase(from);
         return true;
@@ -583,16 +141,118 @@ class RelationsGraph {
         abort();
     }
 
+    static RelationsMap &filterResult(const Relations &relations,
+                                      RelationsMap &result) {
+        for (auto it = result.begin(); it != result.end();) {
+            if (!it->second.anyCommon(relations))
+                it = result.erase(it);
+            else
+                ++it;
+        }
+        return result;
+    }
+
+    static bool processEdge(const Bucket::RelationEdge &edge,
+                            Relations::Type strictRel, Relations &updated,
+                            bool toFirstStrict,
+                            const Bucket::iterator::Visited &firstStrictEdges) {
+        if (!Relations::transitiveOver(strictRel,
+                                       edge.rel())) // edge not relevant
+            return true;
+        if (!toFirstStrict) { // finding all strictly related
+            updated.set(strictRel);
+            return false;
+        }
+        // else unsetting all that are not really first strict
+
+        bool targetOfFSE = updated.has(strictRel); // FSE = first strict edge
+
+        if (!targetOfFSE) {
+            updated.set(Relations::getNonStrict(strictRel), false);
+            return false;
+        }
+
+        // else possible false strict
+        bool thisIsFSE = firstStrictEdges.find(edge) != firstStrictEdges.end();
+
+        if (thisIsFSE) { // strict relation set by false first strict
+            updated.set(strictRel, false);
+            updated.set(Relations::getNonStrict(strictRel), false);
+        }
+        return true; // skip because search will happen from target sooner or
+                     // later
+    }
+
+    RelationsMap getAugmentedRelated(const Bucket &start,
+                                     const Relations &relations,
+                                     bool toFirstStrict) const {
+        RelationsMap result;
+
+        Bucket::iterator::Visited firstStrictEdges;
+        for (auto it = begin_related(start, relations);
+             it != end_related(start);
+             /*incremented in body */) {
+            result[it->to()].set(it->rel());
+
+            if (Relations::isStrict(it->rel())) {
+                firstStrictEdges.emplace(*it);
+                it.skipSuccessors();
+            } else
+                ++it;
+        }
+
+        Bucket::iterator::Visited nestedVisited;
+        for (Bucket::RelationEdge edge : firstStrictEdges) {
+            const Bucket &nestedStart = edge.to();
+            Relations::Type strictRel = edge.rel();
+
+            bool shouldSkip = false;
+            for (auto it = nestedStart.begin(nestedVisited, relations, true,
+                                             true);
+                 it != nestedStart.end(nestedVisited);
+                 shouldSkip ? it.skipSuccessors() : ++it) {
+                shouldSkip = processEdge(*it, strictRel, result[it->to()],
+                                         toFirstStrict, firstStrictEdges);
+                if (shouldSkip)
+                    nestedVisited.erase(*it);
+            }
+        }
+        return result;
+    }
+
+    Relations fromMaybeBetween(const Bucket &lt, const Bucket &rt,
+                               Relations *maybeBetween) const {
+        return maybeBetween ? *maybeBetween : relationsBetween(lt, rt);
+    }
+
+    Bucket::BucketSet getIntersectingNonstrict(const Bucket &lt,
+                                               const Bucket &rt) {
+        RelationsMap ltGE = getRelated(lt, Relations().ge());
+        RelationsMap rtLE = getRelated(rt, Relations().le());
+
+        RelationsMap result;
+        std::set_intersection(ltGE.begin(), ltGE.end(), rtLE.begin(),
+                              rtLE.end(), std::inserter(result, result.begin()),
+                              [](auto &ltPair, auto &rtPair) {
+                                  return ltPair.first < rtPair.first;
+                              });
+
+        Bucket::BucketSet other;
+        for (auto &pair : result)
+            other.emplace(const_cast<Bucket &>(pair.first.get()));
+
+        return other;
+    }
+
   public:
+    RelationsGraph(T &r) : reported(r) {}
+
     using iterator = EdgeIterator;
 
     Relations relationsBetween(const Bucket &lt, const Bucket &rt) const {
         RelationsMap result = getRelated(lt, allRelations);
         return result[rt];
     }
-
-    using RelationsMap =
-            std::map<std::reference_wrapper<const Bucket>, Relations>;
 
     iterator begin_related(const Bucket &start,
                            const Relations &relations) const {
@@ -625,17 +285,114 @@ class RelationsGraph {
     iterator end() const { return iterator(buckets.end()); }
 
     RelationsMap getRelated(const Bucket &start, const Relations &relations,
-                            bool toFirstStrict = false) const;
+                            bool toFirstStrict = false) const {
+        Relations augmented = Relations::getAugmented(relations);
+
+        RelationsMap result =
+                getAugmentedRelated(start, augmented, toFirstStrict);
+
+        for (auto &pair : result) {
+            pair.second.addImplied();
+        }
+
+        return filterResult(relations, result);
+    }
 
     bool areRelated(const Bucket &lt, Relations::Type type, const Bucket &rt,
-                    Relations *maybeBetween = nullptr) const;
+                    Relations *maybeBetween = nullptr) const {
+        Relations between = fromMaybeBetween(lt, rt, maybeBetween);
+        return between.has(type);
+    }
 
     bool haveConflictingRelation(const Bucket &lt, Relations::Type type,
                                  const Bucket &rt,
-                                 Relations *maybeBetween = nullptr) const;
+                                 Relations *maybeBetween = nullptr) const {
+        switch (type) {
+        case Relations::EQ:
+        case Relations::NE:
+        case Relations::LT:
+        case Relations::LE:
+        case Relations::GT:
+        case Relations::GE: {
+            Relations between = fromMaybeBetween(lt, rt, maybeBetween);
+            return between.conflictsWith(type);
+        }
+        case Relations::PT:
+            return lt.hasRelation(type) &&
+                   haveConflictingRelation(lt.getRelated(type), Relations::EQ,
+                                           rt);
+        case Relations::PF:
+            return haveConflictingRelation(rt, Relations::inverted(type), lt);
+        }
+        assert(0 && "unreachable");
+        abort();
+    }
 
     bool addRelation(const Bucket &lt, Relations::Type type, const Bucket &rt,
-                     Relations *maybeBetween = nullptr);
+                     Relations *maybeBetween = nullptr) {
+        Bucket &mLt = const_cast<Bucket &>(lt);
+        Bucket &mRt = const_cast<Bucket &>(rt);
+
+        Relations between = fromMaybeBetween(lt, rt, maybeBetween);
+        if (areRelated(lt, type, rt, &between))
+            return false;
+        assert(!haveConflictingRelation(lt, type, rt, &between));
+
+        switch (type) {
+        case Relations::EQ:
+            if (lt.hasRelation(Relations::PT) &&
+                rt.hasRelation(Relations::PT)) {
+                addRelation(lt.getRelated(Relations::PT), Relations::EQ,
+                            rt.getRelated(Relations::PT));
+            }
+            return setEqual(mLt, mRt);
+
+        case Relations::NE:
+            for (Relations::Type rel : {Relations::LT, Relations::GT}) {
+                if (areRelated(lt, Relations::getNonStrict(rel), rt,
+                               &between)) {
+                    unsetRelated(mLt, Relations::getNonStrict(rel), mRt);
+                    return addRelation(lt, rel, rt, &between);
+                }
+            }
+            break; // jump after switch
+
+        case Relations::LT:
+            if (areRelated(lt, Relations::LE, rt, &between))
+                unsetRelated(mLt, Relations::LE, mRt);
+            break; // jump after switch
+
+        case Relations::LE:
+            if (areRelated(lt, Relations::NE, rt, &between)) {
+                unsetRelated(mLt, Relations::NE, mRt);
+                return addRelation(lt, Relations::LT, rt, &between);
+            }
+            if (areRelated(lt, Relations::GE, rt, &between)) {
+                Bucket::BucketSet intersect = getIntersectingNonstrict(lt, rt);
+                assert(intersect.size() >= 2);
+                Bucket &first = *intersect.begin();
+                for (auto it = std::next(intersect.begin());
+                     it != intersect.end(); ++it)
+                    setEqual(first, *it);
+                return true;
+            }
+            break; // jump after switch
+
+        case Relations::PT:
+            if (lt.hasRelation(type))
+                return addRelation(lt.getRelated(type), Relations::EQ, rt);
+            break; // jump after switch
+
+        case Relations::GT:
+        case Relations::GE:
+        case Relations::PF: {
+            between.invert();
+            return addRelation(rt, Relations::inverted(type), lt, &between);
+        }
+        }
+        setRelated(mLt, type, mRt);
+        return true;
+    }
 
     const Bucket &getNewBucket() {
         auto pair = buckets.emplace(new Bucket(++lastId));
@@ -683,4 +440,4 @@ class RelationsGraph {
 } // namespace vr
 } // namespace dg
 
-#endif // DG_LLVM_VALUE_RELATIONS_RELATION_BUCKETS_H_
+#endif // DG_LLVM_VALUE_RELATIONS_RELATIONS_GRAPH_H_
