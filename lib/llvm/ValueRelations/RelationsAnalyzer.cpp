@@ -264,6 +264,30 @@ RelationsAnalyzer::instructionKeeps(I inst) const {
     return toKeep;
 }
 
+bool RelationsAnalyzer::mayOverwrite(I inst, V address) const {
+    const ValueRelations &graph = codeGraph.getVRLocation(inst).relations;
+
+    if (isSafe(inst))
+        return false;
+
+    if (isDangerous(inst))
+        return true;
+
+    auto store = llvm::cast<llvm::StoreInst>(inst);
+    V memoryPtr = store->getPointerOperand();
+
+    if (memoryPtr == address)
+        return true;
+
+    if (!graph.contains(memoryPtr) || !hasKnownOrigin(graph, memoryPtr))
+        return mayHaveAlias(address);
+
+    if (mayHaveAlias(memoryPtr))
+        return !hasKnownOrigin(address);
+
+    return false;
+}
+
 // ************************ points to helpers ************************* //
 bool RelationsAnalyzer::mayHaveAlias(const ValueRelations &graph, V val) const {
     for (auto eqval : graph.getEqual(val))
@@ -325,6 +349,10 @@ bool RelationsAnalyzer::hasKnownOrigin(const ValueRelations &graph, V from) {
             return true;
     }
     return false;
+}
+
+bool RelationsAnalyzer::hasKnownOrigin(V from) {
+    return llvm::isa<llvm::AllocaInst>(from);
 }
 
 // ************************ operation helpers ************************* //
@@ -755,181 +783,59 @@ bool RelationsAnalyzer::relatesByLoadInAll(
     return true;
 }
 
-Relations RelationsAnalyzer::relationsByLoadInAllPreds(
-        const std::vector<VRLocation *> &preds, V from, V related) const {
-    Relations result = allRelations;
-    for (const VRLocation *pred : preds) {
-        const VectorSet<V> &loaded = pred->relations.getValsByPtr(from);
-        if (loaded.empty())
-            return Relations();
-        result &= pred->relations.between(loaded.any(), related);
+std::pair<std::vector<VRLocation *>, V>
+RelationsAnalyzer::getChangeLocations(V from, VRLocation &join) {
+    assert(join.isJustLoopJoin());
+
+    std::vector<VRLocation *> changeRelations = {&join.getTreePredecessor()};
+    V firstLoad = nullptr;
+    unsigned forks = 0;
+
+    for (auto &inloopInst : structure.getInloopValues(join)) {
+        VRLocation &targetLoc =
+                *codeGraph.getVRLocation(inloopInst).getSuccLocation(0);
+
+        if (auto load = llvm::dyn_cast<llvm::LoadInst>(inloopInst)) {
+            if (load->getPointerOperand() == from && !firstLoad && !forks) {
+                firstLoad = load;
+            }
+        }
+
+        if (targetLoc.succsSize() > 1)
+            ++forks;
+        else if (targetLoc.isJustBranchJoin()) {
+            assert(forks > 0);
+            --forks;
+        }
+
+        if (mayOverwrite(inloopInst, from)) {
+            if (!targetLoc.relations.hasLoad(from)) {
+                return {{}, nullptr}; // no merge by load can happen here
+            }
+            changeRelations.emplace_back(&targetLoc);
+            ++forks; // will never get zeroed out now, no first load will be set
+        }
     }
-    assert(result == result.addImplied());
+    return {changeRelations, firstLoad};
+}
+
+Relations
+RelationsAnalyzer::getCommon(V from,
+                             const std::vector<VRLocation *> &changeRelations,
+                             V firstLoad, V predVal) {
+    Relations result = Relations().eq().addImplied();
+    // for (const VRLocation* loc : changeRelations) {
+    for (unsigned i = 1; i < changeRelations.size(); ++i) {
+        const auto *rels = &changeRelations[i]->relations;
+        Handle loaded = rels->getPointedTo(from);
+        if (firstLoad)
+            result &= rels->between(loaded, firstLoad);
+        else
+            result &= rels->between(loaded, predVal);
+        if (!result.any())
+            break; // no common relations
+    }
     return result;
-}
-
-bool RelationsAnalyzer::loadsInAll(const std::vector<VRLocation *> &locations,
-                                   V from, V value) const {
-    for (const VRLocation *vrloc : locations) {
-        if (!vrloc->relations.isLoad(from, value))
-            // DANGER does it suffice that from equals to value's ptr (before
-            // instruction on edge)?
-            return false;
-    }
-    return true;
-}
-
-bool RelationsAnalyzer::loadsSomethingInAll(
-        const std::vector<VRLocation *> &locations, V from) const {
-    for (const VRLocation *vrloc : locations) {
-        if (!vrloc->relations.hasLoad(from))
-            return false;
-    }
-    return true;
-}
-
-bool RelationsAnalyzer::hasConflictLoad(const std::vector<VRLocation *> &preds,
-                                        V from, V val) {
-    for (const VRLocation *pred : preds) {
-        const ValueRelations &graph = pred->relations;
-        for (auto it = graph.begin_buckets(Relations().pt());
-             it != graph.end_buckets(); ++it) {
-            auto findFrom = graph.getEqual(it->from()).find(from);
-            auto findVal = graph.getEqual(it->to()).find(val);
-
-            if (findFrom != graph.getEqual(it->from()).end() &&
-                findVal == graph.getEqual(it->to()).end()) // TODO check
-                return true;
-        }
-    }
-    return false;
-}
-
-bool RelationsAnalyzer::anyInvalidated(const std::set<V> &allInvalid,
-                                       const VectorSet<V> &froms) {
-    for (auto from : froms) {
-        if (allInvalid.find(from) != allInvalid.end())
-            return true;
-    }
-    return false;
-}
-
-bool RelationsAnalyzer::isGoodFromForPlaceholder(
-        const std::vector<VRLocation *> &preds, V from,
-        const VectorSet<V> &values) {
-    if (!loadsSomethingInAll(preds, from))
-        return false;
-
-    for (auto value : values) {
-        if (loadsInAll(preds, from, value))
-            return false;
-    }
-    return true;
-}
-
-void RelationsAnalyzer::inferChangeInLoop(ValueRelations &thisGraph,
-                                          const std::vector<V> &froms,
-                                          VRLocation &location) {
-    // hopefully get values, that are both related to the value loaded from
-    // from at the end of the loop and at the same time is loaded
-    // from from in given loop
-    std::map<V, std::vector<V>> beforeInvalidation;
-    std::map<V, std::set<VRLocation *>> changeLocations;
-
-    const auto &predEdges = location.predecessors;
-
-    VRLocation *outloopPred = &location.getTreePredecessor();
-    VRLocation *inloopPred = predEdges[0]->type == EdgeType::BACK
-                                     ? predEdges[0]->source
-                                     : predEdges[1]->source;
-
-    for (const auto *val : structure.getInloopValues(location)) {
-        VRLocation &before = codeGraph.getVRLocation(val);
-        assert(before.succsSize() == 1);
-        VRLocation *targetLoc = before.getSuccLocation(0);
-
-        auto invalidated =
-                instructionInvalidatesFromGraph(outloopPred->relations, val);
-        for (V from : froms) {
-            if (invalidated.find(from) != invalidated.end()) {
-                changeLocations[from].emplace(targetLoc);
-            }
-
-            if (auto load = llvm::dyn_cast<llvm::LoadInst>(val)) {
-                if (load->getPointerOperand() == from &&
-                    changeLocations[from].empty()) {
-                    beforeInvalidation[from].emplace_back(val);
-                }
-            }
-        }
-    }
-    for (V from : froms) {
-        VectorSet<V> valsInloop = inloopPred->relations.getValsByPtr(from);
-        if (valsInloop.empty() || beforeInvalidation[from].empty())
-            continue;
-        V valInloop = valsInloop.any();
-        V firstLoadInLoop = beforeInvalidation[from][0];
-
-        // get all equal vals from load from outloopPred
-        VectorSet<V> valsOutloop = outloopPred->relations.getValsByPtr(from);
-        if (valsOutloop.empty())
-            continue;
-
-        Handle placeholder = thisGraph.newPlaceholderBucket(from);
-
-        if (inloopPred->relations.isLesser(firstLoadInLoop, valInloop))
-            thisGraph.setLesserEqual(valsOutloop.any(), placeholder);
-
-        if (inloopPred->relations.isLesser(valInloop, firstLoadInLoop))
-            thisGraph.setLesserEqual(placeholder, valsOutloop.any());
-
-        if (thisGraph.hasComparativeRelations(placeholder)) {
-            thisGraph.setLoad(from, placeholder);
-
-            for (V val : valsOutloop) {
-                thisGraph.setEqual(valsOutloop.any(), val);
-            }
-        } else {
-            thisGraph.erasePlaceholderBucket(placeholder);
-        }
-    }
-}
-
-void RelationsAnalyzer::inferFromChangeLocations(ValueRelations &newGraph,
-                                                 VRLocation &location) {
-    if (!location.isJustLoopJoin())
-        return;
-
-    VRLocation &treePred = location.getTreePredecessor();
-    ValueRelations &graph = treePred.relations;
-
-    // for (auto fromsValues : treePred.relations.getAllLoads()) {
-    for (auto it = graph.begin_buckets(Relations().pt());
-         it != graph.end_buckets(); ++it) {
-        for (V from : graph.getEqual(it->from())) {
-            std::vector<VRLocation *> locationsAfterInvalidating = {&treePred};
-
-            // get all locations which influence value loaded from from
-            for (I invalidating : structure.getInloopValues(location)) {
-                const ValueRelations &relations =
-                        codeGraph.getVRLocation(invalidating).relations;
-                auto invalidated = instructionInvalidatesFromGraph(
-                        relations, invalidating);
-
-                if (invalidated.find(from) != invalidated.end()) {
-                    locationsAfterInvalidating.emplace_back(
-                            codeGraph.getVRLocation(invalidating)
-                                    .getSuccLocation(0));
-                }
-            }
-
-            if (!isGoodFromForPlaceholder(locationsAfterInvalidating, from,
-                                          graph.getEqual(it->to())))
-                continue;
-
-            intersectByLoad(locationsAfterInvalidating, from, newGraph);
-        }
-    }
 }
 
 std::pair<RelationsAnalyzer::C, Relations>
@@ -959,6 +865,18 @@ RelationsAnalyzer::getBoundOnPointedToValue(
         assert(current.any());
     }
     return {bound, current};
+}
+
+void RelationsAnalyzer::relateToFirstLoad(
+        const std::vector<VRLocation *> &preds, V from,
+        ValueRelations &newGraph, Handle placeholder, V firstLoad) {
+    Handle pointedTo = preds[0]->relations.getPointedTo(from);
+
+    for (V predVal : preds[0]->relations.getEqual(pointedTo)) {
+        Relations common = getCommon(from, preds, firstLoad, predVal);
+        if (common.any())
+            newGraph.set(placeholder, common.get(), predVal);
+    }
 }
 
 void RelationsAnalyzer::relateBounds(const std::vector<VRLocation *> &preds,
@@ -997,19 +915,6 @@ void RelationsAnalyzer::relateValues(const std::vector<VRLocation *> &preds,
     }
 }
 
-void RelationsAnalyzer::intersectByLoad(const std::vector<VRLocation *> &preds,
-                                        V from, ValueRelations &newGraph) {
-    Handle placeholder = newGraph.newPlaceholderBucket(from);
-
-    relateBounds(preds, from, newGraph, placeholder);
-    relateValues(preds, from, newGraph, placeholder);
-
-    if (newGraph.hasAnyRelation(placeholder))
-        newGraph.setLoad(from, placeholder);
-    else
-        newGraph.erasePlaceholderBucket(placeholder);
-}
-
 // **************************** merge ******************************* //
 void RelationsAnalyzer::mergeRelations(VRLocation &location) {
     assert(location.predsSize() > 1);
@@ -1038,52 +943,40 @@ void RelationsAnalyzer::mergeRelations(VRLocation &location) {
     if (location.isJustLoopJoin()) {
         bool result = thisGraph.merge(predGraph, comparative);
         assert(result);
-
-        // merge loads from outloop predecessor, that are not invalidated
-        // inside the loop
-        // TODO remove in favour of mergeRelatedByLoads
-
-        std::set<V> allInvalid;
-
-        for (const auto *inst : structure.getInloopValues(location)) {
-            auto invalid = instructionInvalidatesFromGraph(predGraph, inst);
-            allInvalid.insert(invalid.begin(), invalid.end());
-        }
-
-        for (auto it = predGraph.begin_buckets(Relations().pt());
-             it != predGraph.end_buckets(); ++it) {
-            if (!anyInvalidated(allInvalid, predGraph.getEqual(it->from()))) {
-                for (auto from : predGraph.getEqual(it->from())) {
-                    for (auto val : predGraph.getEqual(it->to())) {
-                        thisGraph.setLoad(from, val);
-                    }
-                }
-            }
-        }
     }
 }
 
 void RelationsAnalyzer::mergeRelationsByLoads(VRLocation &loc) {
-    ValueRelations &newGraph = loc.relations;
+    if (!loc.isJustLoopJoin())
+        return;
 
-    std::vector<V> froms;
-    const ValueRelations &predGraph = loc.getTreePredecessor().relations;
+    ValueRelations &newGraph = loc.relations;
+    ValueRelations &predGraph = loc.getTreePredecessor().relations;
+
     for (auto it = predGraph.begin_buckets(Relations().pt());
          it != predGraph.end_buckets(); ++it) {
-        for (auto from : predGraph.getEqual(it->from())) {
-            if (isGoodFromForPlaceholder(loc.getPredLocations(), from,
-                                         predGraph.getEqual(it->to())))
-                froms.emplace_back(from);
+        for (V from : predGraph.getEqual(it->from())) {
+            Handle placeholder = newGraph.newPlaceholderBucket(from);
+
+            std::vector<VRLocation *> changeLocations;
+            V firstLoad;
+            std::tie(changeLocations, firstLoad) =
+                    getChangeLocations(from, loc);
+            if (changeLocations.empty())
+                continue;
+
+            relateToFirstLoad(changeLocations, from, newGraph, placeholder,
+                              firstLoad);
+            relateBounds(changeLocations, from, newGraph, placeholder);
+            relateValues(changeLocations, from, newGraph, placeholder);
+
+            if (!newGraph.getEqual(placeholder).empty() ||
+                newGraph.hasAnyRelation(placeholder))
+                newGraph.setLoad(from, placeholder);
+            else
+                newGraph.erasePlaceholderBucket(placeholder);
         }
     }
-
-    // infer some invariants in loop
-    if (loc.predsSize() == 2 && loc.isJustLoopJoin() &&
-        loc.getPredLocation(0)->relations.holdsAnyRelations() &&
-        loc.getPredLocation(1)->relations.holdsAnyRelations())
-        inferChangeInLoop(newGraph, froms, loc);
-
-    inferFromChangeLocations(newGraph, loc);
 }
 
 // ***************************** edge ******************************* //
