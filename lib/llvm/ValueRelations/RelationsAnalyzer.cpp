@@ -1072,8 +1072,8 @@ bool RelationsAnalyzer::passFunction(const llvm::Function *function,
                                      bool print) {
     bool changed = false;
 
-    for (auto it = codeGraph.bfs_begin(function);
-         it != codeGraph.bfs_end(function); ++it) {
+    for (auto it = codeGraph.lazy_dfs_begin(function);
+         it != codeGraph.lazy_dfs_end(function); ++it) {
         VRLocation &location = *it;
         if (print) {
             std::cerr << "LOCATION " << location.id << std::endl;

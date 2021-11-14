@@ -148,25 +148,21 @@ struct VRLocation {
     VRLocation(unsigned _id) : id(_id) {}
 
     void connect(std::unique_ptr<VREdge> &&edge);
-
     void connect(VRLocation *target, std::unique_ptr<VROp> &&op);
-
     void connect(VRLocation *target, VROp *op);
-
     void connect(VRLocation &target, VROp *op);
 
-    std::vector<VREdge *> getPredecessors();
+    unsigned predsSize() const { return predecessors.size(); }
+    unsigned succsSize() const { return successors.size(); }
 
+    std::vector<VREdge *> getPredecessors();
     std::vector<VREdge *> getSuccessors();
 
     std::vector<VRLocation *> getPredLocations();
-
     std::vector<VRLocation *> getSuccLocations();
 
     bool isJoin() const;
-
     bool isJustBranchJoin() const;
-
     bool isJustLoopJoin() const;
 
     VRLocation &getTreePredecessor() const;
@@ -188,14 +184,12 @@ class VRCodeGraph {
     bool categorizedEdges = false;
 
     VRLocation &newVRLocation();
-
     VRLocation &newVRLocation(const llvm::Instruction *inst);
-
     void setEntryLocation(const llvm::Function *f, VRLocation &loc);
 
   public:
-    VRLocation &getVRLocation(const llvm::Instruction *ptr) const;
 
+    VRLocation &getVRLocation(const llvm::Instruction *ptr) const;
     VRLocation &getEntryLocation(const llvm::Function *f) const;
 
     void hasCategorizedEdges();
@@ -203,202 +197,174 @@ class VRCodeGraph {
     /* ************ function iterator stuff ************ */
 
   private:
-    struct Supplements {
-        enum class Dir { FORWARD, BACKWARD };
-
-        Supplements() = default;
-        Supplements(const llvm::Function *f, VRLocation *start, Dir d);
-
-        std::vector<VREdge *> getNextEdges(VRLocation *loc) const;
-
-        VRLocation *getNextLocation(VREdge *edge) const;
-
-        bool inOtherFunction(VREdge *edge) const;
-
-        // is null or target was visited or leads to other function
-        bool irrelevant(VREdge *edge) const;
-
-      protected:
-        const llvm::Function *function;
+    class SimpleVisit {
         std::set<VRLocation *> visited;
 
-        Dir direction;
-    };
-
-    struct BFSIncrement : protected Supplements {
       protected:
-        BFSIncrement() = default;
-        BFSIncrement(const llvm::Function *f, VRLocation *start, bool e, Dir d);
-
-        void increment();
-
-        const std::queue<std::pair<VRLocation *, VREdge *>> &structure() const {
-            return queue;
-        }
-        VRLocation *location() const { return queue.front().first; }
-        VREdge *edge() const { return queue.front().second; }
-
-      private:
-        bool categorizedEdges;
-        std::map<VRLocation *, unsigned> counts;
-
-        std::queue<std::pair<VRLocation *, VREdge *>> queue;
-    };
-
-    struct DFSIncrement : protected Supplements {
-      protected:
-        DFSIncrement() = default;
-        DFSIncrement(const llvm::Function *f, VRLocation *start, bool /*e*/,
-                     Dir d);
-
-        void increment();
-
-        const std::vector<std::tuple<VRLocation *, unsigned, VREdge *>> &
-        structure() const {
-            return stack;
-        }
-        VRLocation *location() const { return std::get<0>(stack.back()); }
-        VREdge *edge() const { return std::get<2>(stack.back()); }
+        void find(VRLocation *loc);
+        bool shouldVisit(VRLocation *loc) const { return true; }
 
       public:
-        bool onStack(VRLocation *loc) const;
-
         bool wasVisited(VRLocation *loc) const;
-
-      private:
-        std::vector<std::tuple<VRLocation *, unsigned, VREdge *>> stack;
     };
 
-    template <typename Strategy>
-    struct VRFunctionIterator : public Strategy {
-        VRFunctionIterator() = default;
-        VRFunctionIterator(const llvm::Function *f, VRLocation *start, bool e,
-                           Supplements::Dir d)
-                : Strategy(f, start, e, d) {}
+    class LazyVisit {
+        std::map<VRLocation *, unsigned> visited;
 
-        VRLocation &operator*() const { return *operator->(); }
-        VRLocation *operator->() const { return this->location(); }
+        unsigned getPrevEdgesSize(VRLocation *loc) const;
 
-        // returns the edge on which to reach the current location
-        VREdge *getEdge() const { return this->edge(); }
-
-        friend bool operator==(const VRFunctionIterator &lt,
-                               const VRFunctionIterator &rt) {
-            return lt.structure() == rt.structure();
+      protected:
+        void find(VRLocation *loc);
+        bool shouldVisit(VRLocation *loc) const {
+            return visited.find(loc)->second >= getPrevEdgesSize(loc);
         }
 
-        friend bool operator!=(const VRFunctionIterator &lt,
-                               const VRFunctionIterator &rt) {
+      public:
+        bool wasVisited(VRLocation *loc) const;
+    };
+
+    enum class Dir { FORWARD, BACKWARD };
+
+    template <typename Visit>
+    class DFSIt : public Visit {
+        const llvm::Function *function;
+        std::vector<std::tuple<VRLocation *, unsigned, VREdge *>> stack;
+        Dir dir;
+
+        std::vector<VREdge *> getNextEdges(VRLocation *loc) const {
+            return dir == Dir::FORWARD ? loc->getSuccessors()
+                                       : loc->getPredecessors();
+        }
+        VRLocation *getNextLocation(VREdge *edge) const {
+            return dir == Dir::FORWARD ? edge->target : edge->source;
+        }
+
+        bool inOtherFunction(VREdge *edge) const {
+            if (edge->op->isInstruction()) {
+                const llvm::Instruction *inst =
+                        static_cast<VRInstruction *>(edge->op.get())
+                                ->getInstruction();
+                if (inst->getFunction() != function) {
+                    assert(0 && "has edge to other function");
+                    return true;
+                }
+            }
+            return false;
+        }
+        // is null or target was visited or leads to other function
+        bool isIrrelevant(VREdge *edge) const {
+            VRLocation *next = getNextLocation(edge);
+            return !next || Visit::wasVisited(next) || inOtherFunction(edge);
+        }
+
+      public:
+        DFSIt() = default;
+        DFSIt(const llvm::Function *f, VRLocation *start, Dir d)
+                : function(f), dir(d) {
+            stack.emplace_back(start, 0, nullptr);
+        }
+
+        friend bool operator==(const DFSIt &lt, const DFSIt &rt) {
+            return lt.stack == rt.stack;
+        }
+        friend bool operator!=(const DFSIt &lt, const DFSIt &rt) {
             return !(lt == rt);
         }
 
-        VRFunctionIterator &operator++() {
-            this->increment();
+        DFSIt &operator++() {
+            while (!stack.empty()) {
+                VRLocation *current;
+                unsigned index;
+                VREdge *prevEdge;
+                std::tie(current, index, prevEdge) = stack.back();
+                stack.pop_back();
+
+                std::vector<VREdge *> nextEdges = getNextEdges(current);
+                // do not explore if there is no target or if target was already
+                // explored or if is in other function
+                while (index < nextEdges.size() &&
+                       isIrrelevant(nextEdges[index]))
+                    ++index;
+
+                if (index >= nextEdges.size())
+                    continue;
+                stack.emplace_back(current, index + 1, prevEdge);
+
+                VREdge *nextEdge = nextEdges[index];
+                VRLocation *next = getNextLocation(nextEdge);
+
+                Visit::find(next);
+                if (Visit::shouldVisit(next)) {
+                    stack.emplace_back(next, 0, nextEdge);
+                    break;
+                }
+            }
             return *this;
         }
 
-        VRFunctionIterator operator++(int) {
-            auto copy = *this;
-            ++*this;
-            return copy;
+        VRLocation &operator*() const { return *std::get<0>(stack.back()); }
+        VRLocation *operator->() const { return std::get<0>(stack.back()); }
+
+        bool onStack(VRLocation *loc) const {
+            for (auto &elem : stack)
+                if (loc == std::get<0>(elem))
+                    return true;
+            return false;
         }
+        VREdge *getEdge() const { return std::get<2>(stack.back()); }
     };
 
   public:
-    using BFSIterator = VRFunctionIterator<BFSIncrement>;
-    using DFSIterator = VRFunctionIterator<DFSIncrement>;
-    using Dir = Supplements::Dir;
+    using SimpleDFS = DFSIt<SimpleVisit>;
+    using LazyDFS = DFSIt<LazyVisit>;
 
-    BFSIterator bfs_begin(const llvm::Function *f) const {
-        return BFSIterator(f, &getEntryLocation(f), categorizedEdges,
-                           Dir::FORWARD);
-    }
+    LazyDFS lazy_dfs_begin(const llvm::Function *f) const;
+    LazyDFS lazy_dfs_end(const llvm::Function * /*f*/) const;
 
-    BFSIterator bfs_end(const llvm::Function * /*f*/) const {
-        return BFSIterator();
-    }
+    LazyDFS lazy_dfs_begin(const llvm::Function *f, VRLocation &start) const;
+    LazyDFS lazy_dfs_end(const llvm::Function * /*f*/,
+                         VRLocation & /*start*/) const;
 
-    BFSIterator bfs_begin(const llvm::Function *f, VRLocation &start) const {
-        return BFSIterator(f, &start, categorizedEdges, Dir::FORWARD);
-    }
+    SimpleDFS dfs_begin(const llvm::Function *f) const;
+    SimpleDFS dfs_end(const llvm::Function * /*f*/) const;
 
-    BFSIterator bfs_end(const llvm::Function * /*f*/,
-                        VRLocation & /*start*/) const {
-        return BFSIterator();
-    }
-
-    BFSIterator backward_bfs_begin(const llvm::Function *f,
-                                   VRLocation &start) const {
-        return BFSIterator(f, &start, categorizedEdges, Dir::BACKWARD);
-    }
-
-    BFSIterator backward_bfs_end(const llvm::Function * /*f*/,
-                                 VRLocation & /*start*/) const {
-        return BFSIterator();
-    }
-
-    DFSIterator dfs_begin(const llvm::Function *f) const {
-        return DFSIterator(f, &getEntryLocation(f), categorizedEdges,
-                           Dir::FORWARD);
-    }
-
-    DFSIterator dfs_end(const llvm::Function * /*f*/) const {
-        return DFSIterator();
-    }
+    SimpleDFS backward_dfs_begin(const llvm::Function *f,
+                                 VRLocation &start) const;
+    SimpleDFS backward_dfs_end(const llvm::Function * /*f*/,
+                               VRLocation & /*start*/) const;
 
     /* ************ code graph iterator stuff ************ */
 
-  private:
     struct VRCodeGraphIterator {
         using FunctionMapping = std::map<const llvm::Function *, VRLocation *>;
         using MappingIterator = typename FunctionMapping::const_iterator;
 
         VRCodeGraphIterator() = default;
         VRCodeGraphIterator(MappingIterator end);
-        VRCodeGraphIterator(MappingIterator begin, MappingIterator end, bool e);
+        VRCodeGraphIterator(MappingIterator begin, MappingIterator end);
 
         VRLocation &operator*() { return *intoFunction; }
         VRLocation *operator->() { return &operator*(); }
 
-        friend bool operator==(const VRCodeGraph::VRCodeGraphIterator &lt,
-                               const VRCodeGraph::VRCodeGraphIterator &rt) {
-            bool ltIsEnd = lt.intoMapping == lt.endMapping;
-            bool rtIsEnd = rt.intoMapping == rt.endMapping;
-            return (ltIsEnd && rtIsEnd) ||
-                   (!ltIsEnd && !rtIsEnd && lt.intoFunction == rt.intoFunction);
-        }
-
+        friend bool operator==(const VRCodeGraphIterator &lt,
+                               const VRCodeGraphIterator &rt);
         friend bool operator!=(const VRCodeGraphIterator &lt,
                                const VRCodeGraphIterator &rt) {
             return !(lt == rt);
         }
 
         VRCodeGraphIterator &operator++();
-
         VRCodeGraphIterator operator++(int);
 
       private:
         MappingIterator intoMapping;
         MappingIterator endMapping;
 
-        BFSIterator intoFunction;
-        bool categorizedEdges;
+        LazyDFS intoFunction;
     };
 
-  public:
-    using iterator = VRCodeGraphIterator;
-
-    iterator begin() const {
-        return functionMapping.empty()
-                       ? iterator()
-                       : iterator(functionMapping.begin(),
-                                  functionMapping.end(), categorizedEdges);
-    }
-
-    iterator end() const {
-        return functionMapping.empty() ? iterator()
-                                       : iterator(functionMapping.end());
-    }
+    VRCodeGraphIterator begin() const;
+    VRCodeGraphIterator end() const;
 };
 
 } // namespace vr

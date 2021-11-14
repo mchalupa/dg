@@ -199,8 +199,8 @@ void StructureAnalyzer::findLoops() {
         if (function.isDeclaration())
             continue;
 
-        for (auto it = codeGraph.bfs_begin(&function);
-             it != codeGraph.bfs_end(&function); ++it) {
+        for (auto it = codeGraph.lazy_dfs_begin(&function);
+             it != codeGraph.lazy_dfs_end(&function); ++it) {
             VRLocation &location = *it;
 
             if (!location.isJustLoopJoin())
@@ -260,11 +260,17 @@ std::vector<VREdge *>
 StructureAnalyzer::collectReachableEdges(const llvm::Function *f,
                                          VRLocation &from, bool goForward) {
     std::vector<VREdge *> result;
-    for (auto it = goForward ? codeGraph.bfs_begin(f, from)
-                             : codeGraph.backward_bfs_begin(f, from);
-         it != (goForward ? codeGraph.bfs_end(f, from)
-                          : codeGraph.backward_bfs_end(f, from));
-         ++it) {
+    if (goForward) {
+        for (auto it = codeGraph.lazy_dfs_begin(f, from);
+             it != codeGraph.lazy_dfs_end(f, from); ++it) {
+            if (VREdge *edge = it.getEdge())
+                result.emplace_back(edge);
+        }
+        return result;
+    }
+
+    for (auto it = codeGraph.backward_dfs_begin(f, from);
+         it != codeGraph.backward_dfs_end(f, from); ++it) {
         if (VREdge *edge = it.getEdge())
             result.emplace_back(edge);
     }
