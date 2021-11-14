@@ -238,7 +238,7 @@ struct RelationsGraph {
         RelationsMap result;
         std::set_intersection(ltGE.begin(), ltGE.end(), rtLE.begin(),
                               rtLE.end(), std::inserter(result, result.begin()),
-                              [](auto &ltPair, auto &rtPair) {
+                              [](RelationsMap::value_type &ltPair, RelationsMap::value_type &rtPair) {
                                   return ltPair.first < rtPair.first;
                               });
 
