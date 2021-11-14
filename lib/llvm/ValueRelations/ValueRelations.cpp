@@ -60,6 +60,15 @@ Relations ValueRelations::_between(V lt, V rt) const {
     return compare(cLt, cRt);
 }
 
+Relations ValueRelations::_between(Handle lt, size_t rt) const {
+    HandlePtr mH = getBorderH(rt);
+    return mH ? _between(lt, *mH) : Relations();
+}
+Relations ValueRelations::_between(V lt, size_t rt) const {
+    HandlePtr mH = getBorderH(rt);
+    return mH ? _between(lt, *mH) : Relations();
+}
+
 // *************************** iterators ****************************** //
 ValueRelations::rel_iterator
 ValueRelations::begin_related(V val, const Relations &rels) const {
@@ -102,6 +111,11 @@ ValueRelations::RelGraph::iterator ValueRelations::end_buckets() const {
 ValueRelations::HandlePtr ValueRelations::maybeGet(V val) const {
     auto found = valToBucket.find(val);
     return (found == valToBucket.end() ? nullptr : &found->second.get());
+}
+
+std::pair<ValueRelations::BRef, bool> ValueRelations::get(size_t id) {
+    HandlePtr mH = getBorderH(id);
+    return {mH ? *mH : newBorderBucket(id), false};
 }
 
 std::pair<ValueRelations::BRef, bool> ValueRelations::get(V val) {
@@ -303,7 +317,7 @@ ValueRelations::getAndMerge(const ValueRelations &other, Handle otherH) {
 
     if (!thisH)
         return nullptr;
-    
+
     size_t borderId = other.getBorderId(otherH);
     if (borderId != std::string::npos)
         graph.makeBorderBucket(*thisH, borderId);
@@ -441,7 +455,8 @@ void ValueRelations::dotDump(std::ostream &out) const {
     out << "digraph G {\n";
     for (auto it = begin_buckets(Relations().eq().slt().sle().ult().ule().pt());
          it != end_buckets(); ++it) {
-        out << "  RNODE" << it->from().id << " [label=\"" << it->from().id << ": ";
+        out << "  RNODE" << it->from().id << " [label=\"" << it->from().id
+            << ": ";
         dump(it->from(), out);
         out << "\"]; ";
         if (it->rel() != Relations::EQ)

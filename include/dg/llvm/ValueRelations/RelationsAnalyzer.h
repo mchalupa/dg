@@ -88,10 +88,19 @@ class RelationsAnalyzer {
                     VRAssumeBool *assume) const;
 
     // *********************** merge helpers **************************** //
-    static Relations getCommon(const VRLocation &location, V lt,
-                               Relations known, V rt);
-    static void checkRelatesInAll(VRLocation &location, V lt, Relations known,
-                                  V rt, std::set<V> &setEqual);
+    template <typename X, typename Y>
+    static Relations getCommon(const VRLocation &location, const X &lt,
+                               Relations known, const Y &rt) {
+        for (VREdge *predEdge : location.predecessors) {
+            const ValueRelations &predRels = predEdge->source->relations;
+            known &= predRels.between(lt, rt);
+            if (!known.any())
+                return Relations();
+        }
+        return known;
+    }
+    static void inferFromPreds(VRLocation &location, Handle lt, Relations known,
+                               Handle rt);
     static Relations
     getCommonByPointedTo(V from,
                          const std::vector<const VRLocation *> &changeRelations,
