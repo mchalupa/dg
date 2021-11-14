@@ -284,6 +284,14 @@ struct ValueRelations {
         updateChanged(ch);
     }
     template <typename X, typename Y>
+    void set(const X &lt, Relations rels, const Y &rt) {
+        Relations::Type rel = rels.get();
+        set(lt, rel, rt);
+        Relations other = rels & Relations().ult().ule().ugt().uge();
+        if (other.any() && other.get() != rel)
+            set(lt, other.get(), rt);
+    }
+    template <typename X, typename Y>
     void setEqual(const X &lt, const Y &rt) {
         set(lt, Relations::EQ, rt);
     }
@@ -319,6 +327,10 @@ struct ValueRelations {
     template <typename X, typename Y>
     Relations between(const X &lt, const Y &rt) const {
         return _between(lt, rt);
+    }
+    template <typename X, typename Y>
+    bool are(const X &lt, Relations rels, const Y &rt) const {
+        return _between(lt, rt) == rels;
     }
     template <typename X, typename Y>
     bool are(const X &lt, Relations::Type rel, const Y &rt) const {

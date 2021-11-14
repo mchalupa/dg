@@ -575,9 +575,9 @@ void RelationsAnalyzer::checkRelatesInAll(VRLocation &location, V lt,
     if (!related.any())
         return;
 
-    if (related.get() == Relation::EQ)
+    if (related.has(Relation::EQ))
         setEqual.emplace(rt);
-    newGraph.set(lt, related.get(), rt);
+    newGraph.set(lt, related, rt);
 }
 
 Relations RelationsAnalyzer::getCommonByPointedTo(
@@ -686,7 +686,7 @@ void RelationsAnalyzer::relateToFirstLoad(
         Relations common =
                 getCommonByPointedTo(from, changeRelations, firstLoad, prevVal);
         if (common.any())
-            newGraph.set(placeholder, common.get(), prevVal);
+            newGraph.set(placeholder, common, prevVal);
     }
 }
 
@@ -700,11 +700,11 @@ void RelationsAnalyzer::relateBounds(
             Relation::UGE); // TODO collect upper bound too
 
     if (signedLowerBound.first)
-        newGraph.set(placeholder, signedLowerBound.second.get(),
+        newGraph.set(placeholder, signedLowerBound.second,
                      signedLowerBound.first);
 
     if (unsignedLowerBound.first)
-        newGraph.set(placeholder, unsignedLowerBound.second.get(),
+        newGraph.set(placeholder, unsignedLowerBound.second,
                      unsignedLowerBound.first);
 }
 
@@ -718,7 +718,7 @@ void RelationsAnalyzer::relateValues(
         Handle relatedH = pair.first;
         Relations relations = pair.second;
 
-        assert(predGraph.are(pointedTo, relations.get(), relatedH));
+        assert(predGraph.are(pointedTo, relations, relatedH));
 
         if (relatedH == pointedTo)
             continue;
@@ -727,7 +727,7 @@ void RelationsAnalyzer::relateValues(
             Relations common = getCommonByPointedTo(from, changeRelations,
                                                     related, relations);
             if (common.any())
-                newGraph.set(placeholder, common.get(), related);
+                newGraph.set(placeholder, common, related);
         }
     }
 }
