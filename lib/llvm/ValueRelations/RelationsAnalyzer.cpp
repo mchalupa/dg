@@ -826,9 +826,7 @@ void RelationsAnalyzer::inferFromNonEquality(VRLocation &join, V from,
             for (const auto &borderVal : structure.getBorderValuesFor(func)) {
                 if (borderVal.from == arg) {
                     auto thisBorderPlaceholder =
-                            join.relations.getCorrespondingBorder(
-                                    entryRels, borderVal.handle);
-                    assert(thisBorderPlaceholder);
+                            join.relations.getBorderH(borderVal.id);
                     join.relations.set(placeholder,
                                        s == Shift::INC ? Relations::SLE
                                                        : Relations::SGE,
@@ -838,8 +836,8 @@ void RelationsAnalyzer::inferFromNonEquality(VRLocation &join, V from,
             }
         }
 
-        Handle entryBorderPlaceholder = entryRels.newPlaceholderBucket();
-        structure.addBorderValue(func, arg, entryBorderPlaceholder);
+        auto id = structure.addBorderValue(func, arg);
+        Handle entryBorderPlaceholder = entryRels.newBorderBucket(id);
         entryRels.set(entryBorderPlaceholder, Relations::PT, compared);
         entryRels.set(entryBorderPlaceholder,
                       Relations::inverted(s == Shift::INC ? Relations::SLE
@@ -987,10 +985,12 @@ void RelationsAnalyzer::mergeRelationsByPointedTo(VRLocation &loc) {
             if (changeLocations.size() == 1) {
                 Relations between = predGraph.between(arg, it->from());
                 assert(!between.has(Relations::EQ));
-                auto borderH =
-                        newGraph.getCorrespondingBorder(predGraph, it->from());
+                size_t id = predGraph.getBorderId(it->from());
+                if (id == std::string::npos)
+                    continue;
+                auto borderH = newGraph.getBorderH(id);
                 if (!borderH)
-                    borderH = &newGraph.newPlaceholderBucket();
+                    borderH = &newGraph.newBorderBucket(id);
 
                 newGraph.set(arg, between, *borderH);
                 for (V to : predGraph.getEqual(it->to()))
@@ -1050,7 +1050,7 @@ void RelationsAnalyzer::rememberValidated(const ValueRelations &prev,
             !it->from().hasRelation(Relations::PF)) {
             V arg = getArgument(prev, it->from());
             if (arg && !mayOverwrite(inst, arg)) {
-                auto mH = graph.getCorrespondingBorder(prev, it->from());
+                auto mH = graph.getBorderH(prev.getBorderId(it->from()));
                 assert(mH);
 
                 for (V to : prev.getEqual(it->to()))

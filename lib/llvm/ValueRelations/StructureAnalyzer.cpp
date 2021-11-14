@@ -762,10 +762,12 @@ StructureAnalyzer::getPreconditionsFor(const llvm::Function *func) const {
     return preconditionsMap.find(func)->second;
 }
 
-void StructureAnalyzer::addBorderValue(const llvm::Function *func,
-                                       const llvm::Argument *from,
-                                       const ValueRelations::Handle &h) {
-    borderValues[func].emplace_back(from, h);
+size_t StructureAnalyzer::addBorderValue(const llvm::Function *func,
+                                       const llvm::Argument *from) {
+    auto &borderVals = borderValues[func];
+    auto id = borderVals.size();
+    borderVals.emplace_back(from, id);
+    return id;
 }
 
 bool StructureAnalyzer::hasBorderValues(const llvm::Function *func) const {
@@ -776,6 +778,14 @@ const std::vector<BorderValue> &
 StructureAnalyzer::getBorderValuesFor(const llvm::Function *func) const {
     assert(hasBorderValues(func));
     return borderValues.find(func)->second;
+}
+
+const llvm::Argument *StructureAnalyzer::getBorderArgumentFor(const llvm::Function *func, size_t id) const {
+    for (const auto& bv : getBorderValuesFor(func)) {
+        if (bv.id == id)
+            return bv.from;
+    }
+    return nullptr;
 }
 
 } // namespace vr
