@@ -120,6 +120,25 @@ bool transitive(RelationType type) {
     abort();
 }
 
+bool transitiveOver(RelationType fst, RelationType snd) {
+    switch (fst) {
+    case RelationType::LE:
+    case RelationType::LT:
+        return snd == RelationType::LE || snd == RelationType::LT;
+    case RelationType::GE:
+    case RelationType::GT:
+        return snd == RelationType::GE || snd == RelationType::GT;
+    case RelationType::EQ:
+    case RelationType::NE:
+    case RelationType::PT:
+    case RelationType::PF:
+        assert(0 && "unreachable");
+        return false;
+    }
+    assert(0 && "unreachable");
+    abort();
+}
+
 const RelationBits allRelations = ~0;
 
 #ifndef NDEBUG

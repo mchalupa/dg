@@ -25,6 +25,7 @@ RelationType inverted(RelationType type);
 RelationType negated(RelationType type);
 RelationBits conflicting(RelationType type);
 bool transitive(RelationType type);
+bool transitiveOver(RelationType fst, RelationType snd);
 
 extern const RelationBits allRelations;
 
@@ -170,16 +171,18 @@ class Bucket {
                    stack.back().to() == std::next(stack.rbegin())->from();
         }
 
+        bool nextViableTopEdge() {
+            while (stack.back().nextViableEdge()) {
+                if (allowedEdges[toInt(stack.back().rel())] &&
+                    (!undirectedOnly || !isInvertedEdge()))
+                    return true;
+                ++stack.back().bucketIt;
+            }
+            return false;
+        }
+
         void nextViableEdge() {
-            while (!stack.empty()) {
-                // find next viable edge from the top "from" bucket
-                while (stack.back().nextViableEdge()) {
-                    if (allowedEdges[toInt(stack.back().rel())] &&
-                        (!undirectedOnly || !isInvertedEdge()))
-                        return;
-                    ++stack.back().bucketIt;
-                }
-                // no more viable edges from the top "from" bucket
+            while (!stack.empty() && !nextViableTopEdge()) {
                 stack.pop_back();
             }
         }
