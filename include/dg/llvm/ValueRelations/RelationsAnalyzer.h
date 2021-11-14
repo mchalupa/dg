@@ -103,23 +103,27 @@ class RelationsAnalyzer {
                                   Relations known, V rt) const;
     void checkRelatesInAll(VRLocation &location, V lt, Relations known, V rt,
                            std::set<V> &setEqual);
-    bool relatesByLoadInAll(const std::vector<VRLocation *> &preds, V related,
-                            V from, Relation rel) const;
-    Relations getCommon(V from,
-                        const std::vector<VRLocation *> &changeRelations,
-                        V firstLoad, V predVal);
-    std::pair<std::vector<VRLocation *>, V>
+    bool relatesByLoadInAll(
+            const std::vector<const ValueRelations *> &changeRelations,
+            V related, V from, Relation rel) const;
+    Relations
+    getCommon(V from,
+              const std::vector<const ValueRelations *> &changeRelations,
+              V firstLoad, V prevVal);
+    std::pair<std::vector<const ValueRelations *>, V>
     getChangeLocations(V from, VRLocation &join);
-    std::pair<C, Relations>
-    getBoundOnPointedToValue(const std::vector<VRLocation *> &preds, V from,
-                             Relation rel) const;
-    void relateToFirstLoad(const std::vector<VRLocation *> &preds, V from,
-                           ValueRelations &newGraph, Handle placeholder,
-                           V firstLoad);
-    void relateBounds(const std::vector<VRLocation *> &preds, V from,
-                      ValueRelations &newGraph, Handle placeholder);
-    void relateValues(const std::vector<VRLocation *> &preds, V from,
-                      ValueRelations &newGraph, Handle placeholder);
+    std::pair<C, Relations> getBoundOnPointedToValue(
+            const std::vector<const ValueRelations *> &changeRelations, V from,
+            Relation rel) const;
+    void relateToFirstLoad(
+            const std::vector<const ValueRelations *> &changeRelations, V from,
+            ValueRelations &newGraph, Handle placeholder, V firstLoad);
+    void
+    relateBounds(const std::vector<const ValueRelations *> &changeRelations,
+                 V from, ValueRelations &newGraph, Handle placeholder);
+    void
+    relateValues(const std::vector<const ValueRelations *> &changeRelations,
+                 V from, ValueRelations &newGraph, Handle placeholder);
 
     // **************************** merge ******************************* //
     void mergeRelations(VRLocation &location);
