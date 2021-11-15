@@ -850,8 +850,7 @@ void StructureAnalyzer::dumpBorderValues(std::ostream &out) const {
             out << "("
                 << "id " << bv.id << ", "
                 << "from " << debug::getValName(bv.from) << ", "
-                << "stored " << debug::getValName(bv.stored)
-                << "), ";
+                << "stored " << debug::getValName(bv.stored) << "), ";
     }
     out << "\n]\n";
 }

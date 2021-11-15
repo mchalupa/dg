@@ -277,8 +277,8 @@ class VRCodeGraph {
         DFSIt() = default;
         DFSIt(const llvm::Function &f, const VRLocation *start, Dir d)
                 : function(&f), dir(d) {
-            stack.emplace_back(const_cast<VRLocation*>(start), 0, nullptr);
-            visit(const_cast<VRLocation*>(start));
+            stack.emplace_back(const_cast<VRLocation *>(start), 0, nullptr);
+            visit(const_cast<VRLocation *>(start));
         }
 
         friend bool operator==(const DFSIt &lt, const DFSIt &rt) {
@@ -340,7 +340,8 @@ class VRCodeGraph {
     using LazyDFS = DFSIt<LazyVisit>;
 
     LazyDFS lazy_dfs_begin(const llvm::Function &f) const;
-    LazyDFS lazy_dfs_begin(const llvm::Function &f, const VRLocation &start) const;
+    LazyDFS lazy_dfs_begin(const llvm::Function &f,
+                           const VRLocation &start) const;
     static LazyDFS lazy_dfs_end();
 
     SimpleDFS dfs_begin(const llvm::Function &f) const;

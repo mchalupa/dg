@@ -163,8 +163,9 @@ VRCodeGraph::SimpleDFS VRCodeGraph::dfs_begin(const llvm::Function &f,
 
 VRCodeGraph::SimpleDFS VRCodeGraph::dfs_end() { return SimpleDFS(); }
 
-VRCodeGraph::SimpleDFS VRCodeGraph::backward_dfs_begin(const llvm::Function &f,
-                                                       const VRLocation &start) {
+VRCodeGraph::SimpleDFS
+VRCodeGraph::backward_dfs_begin(const llvm::Function &f,
+                                const VRLocation &start) {
     return SimpleDFS(f, &start, Dir::BACKWARD);
 }
 
