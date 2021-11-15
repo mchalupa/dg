@@ -119,7 +119,7 @@ bool inferrs(Relations::Type one, Relations::Type two) {
     case Relations::UGE:
         return two == Relations::NE || two == Relations::UGT;
     case Relations::NE:
-        return nonStrict.has(two);
+        return nonStrict.has(two) || strict.has(two);
     case Relations::EQ:
     case Relations::SLT:
     case Relations::ULT:
