@@ -141,12 +141,14 @@ class RelationsGraph {
     UniqueBucketSet buckets;
     size_t lastId = 0;
 
-    std::vector<std::pair<size_t, std::reference_wrapper<const Bucket>>> borderBuckets;
+    std::vector<std::pair<size_t, std::reference_wrapper<const Bucket>>>
+            borderBuckets;
 
     bool setEqual(Bucket &to, Bucket &from) {
         assert(to != from);
         if (getBorderId(from) != std::string::npos) {
-            assert(getBorderId(to) == std::string::npos); // cannot merge two border buckets
+            assert(getBorderId(to) ==
+                   std::string::npos); // cannot merge two border buckets
             for (auto &pair : borderBuckets) {
                 if (from == pair.second)
                     pair.second = to;
@@ -496,7 +498,8 @@ class RelationsGraph {
     void dumpBorderBuckets(std::ostream &out = std::cerr) const {
         out << "[ ";
         for (auto &pair : borderBuckets)
-            out << "(id " << pair.first << ", b " << pair.second.get().id << "), ";
+            out << "(id " << pair.first << ", b " << pair.second.get().id
+                << "), ";
         out << "]\n";
     }
 
