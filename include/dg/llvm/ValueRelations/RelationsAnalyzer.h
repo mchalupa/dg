@@ -61,11 +61,13 @@ class RelationsAnalyzer {
     void solveCommutativity(ValueRelations &graph,
                             const llvm::BinaryOperator *operation);
     enum class Shift { INC, DEC, EQ, UNKNOWN };
-    static Shift getShift(const llvm::BinaryOperator *op, V from);
-    static Shift getShift(const llvm::GetElementPtrInst *op, V from);
-    static Shift getShift(const llvm::Value *val, V from);
+    static Shift getShift(const llvm::BinaryOperator *op,
+                          const VectorSet<V> &froms);
+    static Shift getShift(const llvm::GetElementPtrInst *op,
+                          const VectorSet<V> &froms);
+    static Shift getShift(const llvm::Value *val, const VectorSet<V> &froms);
     Shift getShift(const std::vector<const VRLocation *> &changeLocations,
-                   V from) const;
+                   const VectorSet<V> &froms) const;
     bool canShift(const ValueRelations &graph, V param, Relations::Type shift);
     void solveDifferent(ValueRelations &graph, const llvm::BinaryOperator *op);
     void inferFromNEPointers(ValueRelations &newGraph,
@@ -103,32 +105,37 @@ class RelationsAnalyzer {
     static void inferFromPreds(VRLocation &location, Handle lt, Relations known,
                                Handle rt);
     static Relations
-    getCommonByPointedTo(V from,
+    getCommonByPointedTo(const VectorSet<V> &froms,
                          const std::vector<const VRLocation *> &changeRelations,
                          V val, Relations rels);
     std::vector<const VRLocation *>
-    getBranchChangeLocations(const VRLocation &join, V from) const;
+    getBranchChangeLocations(const VRLocation &join,
+                             const VectorSet<V> &froms) const;
     std::vector<const VRLocation *>
-    getLoopChangeLocations(const VRLocation &join, V form) const;
+    getLoopChangeLocations(const VRLocation &join,
+                           const VectorSet<V> &froms) const;
 
     // get target locations of changing instructions
-    std::vector<const VRLocation *> getChangeLocations(const VRLocation &join,
-                                                       V from);
+    std::vector<const VRLocation *>
+    getChangeLocations(const VRLocation &join, const VectorSet<V> &froms);
     static std::pair<C, Relations> getBoundOnPointedToValue(
-            const std::vector<const VRLocation *> &changeLocations, V from,
-            Relation rel);
+            const std::vector<const VRLocation *> &changeLocations,
+            const VectorSet<V> &froms, Relation rel);
     std::vector<const llvm::ICmpInst *> getEQICmp(const VRLocation &join);
-    void inferFromNonEquality(VRLocation &join, V from, Shift s,
-                              Handle placeholder);
+    void inferFromNonEquality(VRLocation &join, const VectorSet<V> &froms,
+                              Shift s, Handle placeholder);
     void
     inferShiftInLoop(const std::vector<const VRLocation *> &changeLocations,
-                     V from, ValueRelations &newGraph, Handle placeholder);
+                     const VectorSet<V> &froms, ValueRelations &newGraph,
+                     Handle placeholder);
     static void
-    relateBounds(const std::vector<const VRLocation *> &changeLocations, V from,
-                 ValueRelations &newGraph, Handle placeholder);
+    relateBounds(const std::vector<const VRLocation *> &changeLocations,
+                 const VectorSet<V> &froms, ValueRelations &newGraph,
+                 Handle placeholder);
     static void
-    relateValues(const std::vector<const VRLocation *> &changeLocations, V from,
-                 ValueRelations &newGraph, Handle placeholder);
+    relateValues(const std::vector<const VRLocation *> &changeLocations,
+                 const VectorSet<V> &froms, ValueRelations &newGraph,
+                 Handle placeholder);
 
     // **************************** merge ******************************* //
     static void mergeRelations(VRLocation &location);
@@ -165,6 +172,8 @@ class RelationsAnalyzer {
     static HandlePtr getCorrespondingByContent(const ValueRelations &toRels,
                                                const ValueRelations &fromRels,
                                                Handle h);
+    static HandlePtr getCorrespondingByContent(const ValueRelations &toRels,
+                                               const VectorSet<V> &vals);
     static const llvm::AllocaInst *getOrigin(const ValueRelations &rels, V val);
 };
 
