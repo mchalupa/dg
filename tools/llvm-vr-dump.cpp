@@ -25,8 +25,8 @@
 #include <llvm/Bitcode/ReaderWriter.h>
 #endif
 
-#undef NDEBUG // we need dump methods
 #include "dg/llvm/ValueRelations/GraphBuilder.h"
+#include "dg/llvm/ValueRelations/GraphElements.h"
 #include "dg/llvm/ValueRelations/RelationsAnalyzer.h"
 #include "dg/llvm/ValueRelations/StructureAnalyzer.h"
 #include "dg/llvm/ValueRelations/getValName.h"
@@ -41,7 +41,7 @@ llvm::cl::opt<bool> todot("dot", llvm::cl::desc("Dump graph in grahviz format"),
 
 llvm::cl::opt<unsigned> max_iter("max-iter",
                                  llvm::cl::desc("Maximal number of iterations"),
-                                 llvm::cl::init(100));
+                                 llvm::cl::init(20));
 
 llvm::cl::opt<std::string> inputFile(llvm::cl::Positional, llvm::cl::Required,
                                      llvm::cl::desc("<input file>"),
@@ -78,53 +78,69 @@ int main(int argc, char *argv[]) {
     tm.start();
 
     // perform preparations and analysis
-    std::map<const llvm::Instruction *, VRLocation *> locationMapping;
-    std::map<const llvm::BasicBlock *, std::unique_ptr<VRBBlock>> blockMapping;
+    VRCodeGraph codeGraph;
 
-    GraphBuilder gb(*M, locationMapping, blockMapping);
+    GraphBuilder gb(*M, codeGraph);
     gb.build();
 
-    StructureAnalyzer structure(*M, locationMapping, blockMapping);
+    StructureAnalyzer structure(*M, codeGraph);
     structure.analyzeBeforeRelationsAnalysis();
 
-    RelationsAnalyzer ra(*M, locationMapping, blockMapping, structure);
-    ra.analyze(max_iter);
-    // call to analyzeAfterRelationsAnalysis is unnecessary
-    // end analysis
+    RelationsAnalyzer ra(*M, codeGraph, structure);
+    unsigned num_iter = ra.analyze(max_iter);
+    structure.analyzeAfterRelationsAnalysis();
+    // call to analyzeAfterRelationsAnalysis is unnecessary, but better for
+    // testing end analysis
 
     tm.stop();
     tm.report("INFO: Value Relations analysis took");
-
-    std::cout << std::endl;
+    std::cerr << "INFO: The analysis made " << num_iter << " passes."
+              << "\n";
+    std::cerr << "\n";
 
     if (todot) {
         std::cout << "digraph VR {\n";
-        for (const auto &block : blockMapping) {
-            for (const auto &loc : block.second->locations) {
-                std::cout << "  NODE" << loc->id;
-                std::cout << "[label=\"";
-                std::cout << "LOCATION " << loc->id << "\\n";
-                loc->relations.dump();
-                std::cout << "\"];\n";
-            }
+        for (auto &loc : codeGraph) {
+            std::cout << "  NODE" << loc.id;
+            std::cout << "[shape=box, margin=0.15, label=\"";
+            std::cout << "LOCATION " << loc.id << "\\n";
+#ifndef NDEBUG
+            std::cout << loc.relations;
+#endif
+            std::cout << "\"];\n";
         }
 
         unsigned dummyIndex = 0;
-        for (const auto &block : blockMapping) {
-            for (const auto &loc : block.second->locations) {
-                for (const auto &succ : loc->successors) {
-                    if (succ->target)
-                        std::cout << "  NODE" << loc->id << " -> NODE"
-                                  << succ->target->id;
-                    else {
-                        std::cout << "DUMMY_NODE" << ++dummyIndex << std::endl;
-                        std::cout << "  NODE" << loc->id << " -> DUMMY_NODE"
-                                  << dummyIndex;
-                    }
-                    std::cout << " [label=\"";
-                    succ->op->dump();
-                    std::cout << "\"];\n";
+        for (auto &loc : codeGraph) {
+            for (const auto &succ : loc.successors) {
+                if (succ->target)
+                    std::cout << "  NODE" << loc.id << " -> NODE"
+                              << succ->target->id;
+                else {
+                    std::cout << "DUMMY_NODE" << ++dummyIndex << "\n";
+                    std::cout << "  NODE" << loc.id << " -> DUMMY_NODE"
+                              << dummyIndex;
                 }
+                std::cout << " [label=\"";
+#ifndef NDEBUG
+                succ->op->dump();
+#endif
+                std::cout << "\", color=";
+                switch (succ->type) {
+                case EdgeType::TREE:
+                    std::cout << "darkgreen";
+                    break;
+                case EdgeType::FORWARD:
+                    std::cout << "blue";
+                    break;
+                case EdgeType::BACK:
+                    std::cout << "red";
+                    break;
+                case EdgeType::DEFAULT:
+                    std::cout << "pink";
+                    break;
+                }
+                std::cout << "];\n";
             }
         }
         std::cout << "}\n";

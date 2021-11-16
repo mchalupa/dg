@@ -205,3 +205,9 @@ add_dependencies(check llvm-slicer)
 # --------------------------------------------------
 add_executable(ptset-benchmark ptset-benchmark.cpp)
 target_link_libraries(ptset-benchmark PRIVATE dganalysis dgpta)
+
+# --------------------------------------------------
+# value-relations-test
+# --------------------------------------------------
+add_catch_test(value-relations-test.cpp)
+target_link_libraries(value-relations-test PRIVATE dgvra)

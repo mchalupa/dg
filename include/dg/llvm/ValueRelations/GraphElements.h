@@ -1,10 +1,14 @@
-#ifndef DG_LLVM_VALUE_RELATIONS_GRAPH_ELEMENTS_HPP_
-#define DG_LLVM_VALUE_RELATIONS_GRAPH_ELEMENTS_HPP_
+#ifndef DG_LLVM_VALUE_RELATIONS_GRAPH_ELEMENTS_H_
+#define DG_LLVM_VALUE_RELATIONS_GRAPH_ELEMENTS_H_
 
+#include <cassert>
 #include <list>
-#include <llvm/IR/Instructions.h>
+#include <queue>
 
+#include "UniquePtrVector.h"
 #include "ValueRelations.h"
+
+#include <llvm/IR/Instructions.h>
 
 #ifndef NDEBUG
 #include "getValName.h"
@@ -30,9 +34,9 @@ class VROp {
 #ifndef NDEBUG
     virtual std::string toStr() const = 0;
 
-    void generalDump(std::ostream &stream) { stream << toStr(); }
+    void generalDump(std::ostream &stream) const { stream << toStr(); }
 
-    void dump() { generalDump(std::cout); }
+    void dump() const { generalDump(std::cout); }
 #endif
 };
 
@@ -49,6 +53,8 @@ struct VRInstruction : public VROp {
 
     VRInstruction(const llvm::Instruction *I)
             : VROp(VROpType::INSTRUCTION), instruction(I) {}
+
+    VRInstruction(const llvm::Instruction &I) : VRInstruction(&I) {}
 
     const llvm::Instruction *getInstruction() const { return instruction; }
 
@@ -106,7 +112,7 @@ struct VRAssumeEqual : public VRAssume {
 
 struct VRLocation;
 
-enum EdgeType {
+enum class EdgeType {
     TREE,
     BACK,
     FORWARD,
@@ -124,12 +130,13 @@ struct VREdge {
 
     VREdge(VRLocation *s, VRLocation *t, std::unique_ptr<VROp> &&op)
             : source(s), target(t), op(std::move(op)) {}
+
+    VREdge(VRLocation *s, VRLocation *t, VROp *opRaw)
+            : source(s), target(t), op(opRaw) {}
 };
 
 struct VRLocation {
     const unsigned id;
-
-    bool inLoop = false;
 
     ValueRelations relations;
 
@@ -138,89 +145,241 @@ struct VRLocation {
 
     VRLocation(unsigned _id) : id(_id) {}
 
-    void connect(std::unique_ptr<VREdge> &&edge) {
-        if (edge->target)
-            edge->target->predecessors.push_back(edge.get());
-        successors.emplace_back(std::move(edge));
+    void connect(std::unique_ptr<VREdge> &&edge);
+    void connect(VRLocation *target, std::unique_ptr<VROp> &&op);
+    void connect(VRLocation *target, VROp *op);
+    void connect(VRLocation &target, VROp *op);
+
+    unsigned predsSize() const { return predecessors.size(); }
+    unsigned succsSize() const { return successors.size(); }
+
+    VREdge *getPredEdge(unsigned i) const { return predecessors[i]; }
+    VREdge *getSuccEdge(unsigned i) const { return successors[i].get(); }
+
+    VRLocation *getPredLocation(unsigned i) const {
+        return predecessors[i]->source;
+    }
+    VRLocation *getSuccLocation(unsigned i) const {
+        return successors[i]->target;
     }
 
-    std::vector<VREdge *> getPredecessors() { return predecessors; }
+    std::vector<VRLocation *> getPredLocations();
+    std::vector<VRLocation *> getSuccLocations();
 
-    std::vector<VREdge *>
-    getSuccessors() { // TODO create an iterator to unwrap the unique pointers
-        std::vector<VREdge *> result;
-        for (auto &succ : successors) {
-            result.push_back(succ.get());
-        }
-        return result;
-    }
+    bool isJoin() const;
+    bool isJustBranchJoin() const;
+    bool isJustLoopJoin() const;
 
-    std::vector<VRLocation *> getPredLocations() {
-        std::vector<VRLocation *> result;
-        for (VREdge *edge : predecessors) {
-            result.push_back(edge->source);
-        }
-        return result;
-    }
-
-    std::vector<VRLocation *> getSuccLocations() {
-        std::vector<VRLocation *> result;
-        for (auto &edge : successors) {
-            result.push_back(edge->target);
-        }
-        return result;
-    }
-
-    bool isJoin() const { return predecessors.size() > 1; }
-
-    bool isJustBranchJoin() const {
-        // allows TREE and FORWARD
-        if (!isJoin())
-            return false;
-        for (VREdge *pred : predecessors) {
-            if (pred->type == EdgeType::BACK)
-                return false;
-        }
-        return true;
-    }
-
-    bool isJustLoopJoin() const {
-        // allows TREE and BACK
-        if (!isJoin())
-            return false;
-        for (VREdge *pred : predecessors) {
-            if (pred->type == EdgeType::FORWARD)
-                return false;
-        }
-        return true;
-    }
+    VRLocation &getTreePredecessor() const;
 
 #ifndef NDEBUG
-    void dump() const { std::cout << id << std::endl; }
+    void dump() const { std::cout << id << "\n"; }
 #endif
 };
 
-struct VRBBlock {
-    std::list<std::unique_ptr<VRLocation>> locations;
+class VRCodeGraph {
+    friend class GraphBuilder;
 
-    void prepend(VRLocation *loc) { locations.emplace(locations.begin(), loc); }
+    UniquePtrVector<VRLocation> locations;
+    std::map<const llvm::Function *, VRLocation *> functionMapping;
+    // VRLocation corresponding to the state of the program BEFORE executing the
+    // instruction
+    std::map<const llvm::Instruction *, VRLocation *> locationMapping;
 
-    void append(VRLocation *loc) { locations.emplace_back(loc); }
+    bool categorizedEdges = false;
 
-    VRLocation *last() { return locations.back().get(); }
-    VRLocation *first() { return locations.front().get(); }
-    const VRLocation *last() const { return locations.back().get(); }
-    const VRLocation *first() const { return locations.front().get(); }
+    VRLocation &newVRLocation();
+    VRLocation &newVRLocation(const llvm::Instruction *inst);
+    void setEntryLocation(const llvm::Function *f, VRLocation &loc);
 
-    auto begin() -> decltype(locations.begin()) { return locations.begin(); }
-    auto end() -> decltype(locations.end()) { return locations.end(); }
-    auto begin() const -> decltype(locations.begin()) {
-        return locations.begin();
-    }
-    auto end() const -> decltype(locations.end()) { return locations.end(); }
+  public:
+    /* return VRLocation corresponding to the state of the program BEFORE
+     * executing the passed instruction */
+    VRLocation &getVRLocation(const llvm::Instruction *ptr) const;
+    VRLocation &getEntryLocation(const llvm::Function &f) const;
+
+    void hasCategorizedEdges();
+
+    /* ************ function iterator stuff ************ */
+
+  private:
+    class SimpleVisit {
+        std::set<VRLocation *> visited;
+
+      protected:
+        void find(VRLocation *loc);
+        static bool shouldVisit(__attribute__((unused)) VRLocation *loc) {
+            return true;
+        }
+
+      public:
+        bool wasVisited(VRLocation *loc) const;
+    };
+
+    class LazyVisit {
+        std::map<VRLocation *, unsigned> visited;
+
+        static unsigned getPrevEdgesSize(VRLocation *loc);
+
+      protected:
+        void find(VRLocation *loc);
+        bool shouldVisit(VRLocation *loc) const {
+            return visited.find(loc)->second >= getPrevEdgesSize(loc);
+        }
+
+      public:
+        bool wasVisited(VRLocation *loc) const;
+    };
+
+    enum class Dir { FORWARD, BACKWARD };
+
+    template <typename Visit>
+    class DFSIt : public Visit {
+        const llvm::Function *function;
+        std::vector<std::tuple<VRLocation *, unsigned, VREdge *>> stack;
+        Dir dir = Dir::FORWARD;
+
+        VREdge *getNextEdge(VRLocation *loc, unsigned i) const {
+            return dir == Dir::FORWARD ? loc->getSuccEdge(i)
+                                       : loc->getPredEdge(i);
+        }
+        VRLocation *getNextLocation(VREdge *edge) const {
+            return dir == Dir::FORWARD ? edge->target : edge->source;
+        }
+
+        bool inOtherFunction(VREdge *edge) const {
+            if (edge->op->isInstruction()) {
+                const llvm::Instruction *inst =
+                        static_cast<VRInstruction *>(edge->op.get())
+                                ->getInstruction();
+                if (inst->getFunction() != function) {
+                    assert(0 && "has edge to other function");
+                    return true;
+                }
+            }
+            return false;
+        }
+        // is null or target was visited or leads to other function
+        bool isIrrelevant(VREdge *edge) const {
+            VRLocation *next = getNextLocation(edge);
+            return !next || Visit::wasVisited(next) || inOtherFunction(edge);
+        }
+
+        void visit(VRLocation *loc) {
+            while (!Visit::wasVisited(loc))
+                Visit::find(loc);
+        }
+
+      public:
+        DFSIt() = default;
+        DFSIt(const llvm::Function &f, VRLocation *start, Dir d)
+                : function(&f), dir(d) {
+            stack.emplace_back(start, 0, nullptr);
+            visit(start);
+        }
+
+        friend bool operator==(const DFSIt &lt, const DFSIt &rt) {
+            return lt.stack == rt.stack;
+        }
+        friend bool operator!=(const DFSIt &lt, const DFSIt &rt) {
+            return !(lt == rt);
+        }
+
+        DFSIt &operator++() {
+            while (!stack.empty()) {
+                VRLocation *current;
+                unsigned index;
+                VREdge *prevEdge;
+                std::tie(current, index, prevEdge) = stack.back();
+                stack.pop_back();
+
+                unsigned nextSize = dir == Dir::FORWARD ? current->succsSize()
+                                                        : current->predsSize();
+                // do not explore if there is no target or if target was already
+                // explored or if is in other function
+
+                while (index < nextSize &&
+                       isIrrelevant(getNextEdge(current, index)))
+                    ++index;
+
+                if (index >= nextSize)
+                    continue;
+                stack.emplace_back(current, index + 1, prevEdge);
+
+                VREdge *nextEdge = getNextEdge(current, index);
+                VRLocation *next = getNextLocation(nextEdge);
+
+                Visit::find(next);
+                if (Visit::shouldVisit(next)) {
+                    stack.emplace_back(next, 0, nextEdge);
+                    break;
+                }
+            }
+            return *this;
+        }
+
+        VRLocation &operator*() const { return *std::get<0>(stack.back()); }
+        VRLocation *operator->() const { return std::get<0>(stack.back()); }
+
+        bool onStack(VRLocation *loc) const {
+            for (const auto &elem : stack)
+                if (loc == std::get<0>(elem))
+                    return true;
+            return false;
+        }
+        VREdge *getEdge() const { return std::get<2>(stack.back()); }
+    };
+
+  public:
+    using SimpleDFS = DFSIt<SimpleVisit>;
+    using LazyDFS = DFSIt<LazyVisit>;
+
+    LazyDFS lazy_dfs_begin(const llvm::Function &f) const;
+    LazyDFS lazy_dfs_begin(const llvm::Function &f, VRLocation &start) const;
+    static LazyDFS lazy_dfs_end();
+
+    SimpleDFS dfs_begin(const llvm::Function &f) const;
+    static SimpleDFS dfs_end();
+
+    static SimpleDFS backward_dfs_begin(const llvm::Function &f,
+                                        VRLocation &start);
+    static SimpleDFS backward_dfs_end();
+
+    /* ************ code graph iterator stuff ************ */
+
+    struct VRCodeGraphIterator {
+        using FunctionMapping = std::map<const llvm::Function *, VRLocation *>;
+        using MappingIterator = typename FunctionMapping::const_iterator;
+
+        VRCodeGraphIterator() = default;
+        VRCodeGraphIterator(MappingIterator end);
+        VRCodeGraphIterator(MappingIterator begin, MappingIterator end);
+
+        VRLocation &operator*() { return *intoFunction; }
+        VRLocation *operator->() { return &operator*(); }
+
+        friend bool operator==(const VRCodeGraphIterator &lt,
+                               const VRCodeGraphIterator &rt);
+        friend bool operator!=(const VRCodeGraphIterator &lt,
+                               const VRCodeGraphIterator &rt) {
+            return !(lt == rt);
+        }
+
+        VRCodeGraphIterator &operator++();
+        VRCodeGraphIterator operator++(int);
+
+      private:
+        MappingIterator intoMapping;
+        MappingIterator endMapping;
+
+        LazyDFS intoFunction;
+    };
+
+    VRCodeGraphIterator begin() const;
+    VRCodeGraphIterator end() const;
 };
 
 } // namespace vr
 } // namespace dg
 
-#endif // DG_LLVM_VALUE_RELATIONS_GRAPH_ELEMENTS_HPP_
+#endif // DG_LLVM_VALUE_RELATIONS_GRAPH_ELEMENTS_H_

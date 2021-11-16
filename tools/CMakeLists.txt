@@ -122,6 +122,7 @@ endif (HAVE_SVF)
 	add_executable(llvm-vr-dump llvm-vr-dump.cpp)
 	target_link_libraries(llvm-vr-dump
 				# dynamic LLVM
+				PRIVATE dgllvmvra
 				PRIVATE ${llvm}
 				# static LLVM
 				PRIVATE ${llvm_irreader})
