@@ -60,6 +60,15 @@ Relations ValueRelations::_between(V lt, V rt) const {
     return compare(cLt, cRt);
 }
 
+Relations ValueRelations::_between(Handle lt, size_t rt) const {
+    HandlePtr mH = getBorderH(rt);
+    return mH ? _between(lt, *mH) : Relations();
+}
+Relations ValueRelations::_between(V lt, size_t rt) const {
+    HandlePtr mH = getBorderH(rt);
+    return mH ? _between(lt, *mH) : Relations();
+}
+
 // *************************** iterators ****************************** //
 ValueRelations::rel_iterator
 ValueRelations::begin_related(V val, const Relations &rels) const {
@@ -102,6 +111,11 @@ ValueRelations::RelGraph::iterator ValueRelations::end_buckets() const {
 ValueRelations::HandlePtr ValueRelations::maybeGet(V val) const {
     auto found = valToBucket.find(val);
     return (found == valToBucket.end() ? nullptr : &found->second.get());
+}
+
+std::pair<ValueRelations::BRef, bool> ValueRelations::get(size_t id) {
+    HandlePtr mH = getBorderH(id);
+    return {mH ? *mH : newBorderBucket(id), false};
 }
 
 std::pair<ValueRelations::BRef, bool> ValueRelations::get(V val) {
@@ -201,10 +215,8 @@ VectorSet<ValueRelations::V> ValueRelations::getValsByPtr(V from) const {
     return getEqual(*toH);
 }
 
-ValueRelations::Handle ValueRelations::getHandle(V val) const {
-    HandlePtr mH = maybeGet(val);
-    assert(mH);
-    return *mH;
+ValueRelations::HandlePtr ValueRelations::getHandle(V val) const {
+    return maybeGet(val);
 }
 
 // ************************** placeholder ***************************** //
@@ -258,6 +270,10 @@ ValueRelations::getCorresponding(const ValueRelations &other, Handle otherH,
                                  const VectorSet<V> &otherEqual) {
     if (otherEqual.empty()) { // other is a placeholder bucket, therefore it is
                               // pointed to from other bucket
+        if (!otherH.hasRelation(Relations::PF)) {
+            HandlePtr thisH = getBorderH(other.getBorderId(otherH));
+            return thisH ? thisH : &newBorderBucket(other.getBorderId(otherH));
+        }
         assert(otherH.hasRelation(Relations::PF));
         Handle otherFromH = otherH.getRelated(Relations::PF);
         HandlePtr thisFromH = getCorresponding(other, otherFromH);
@@ -300,6 +316,10 @@ ValueRelations::getAndMerge(const ValueRelations &other, Handle otherH) {
     if (!thisH)
         return nullptr;
 
+    size_t borderId = other.getBorderId(otherH);
+    if (borderId != std::string::npos)
+        graph.makeBorderBucket(*thisH, borderId);
+
     for (V val : otherEqual)
         add(val, *thisH);
 
@@ -316,16 +336,14 @@ bool ValueRelations::merge(const ValueRelations &other, Relations relations) {
         HandlePtr thisToH = getAndMerge(other, edge.to());
         HandlePtr thisFromH = getCorresponding(other, edge.from());
 
-        if (!thisToH || !thisFromH) {
+        if (!thisToH || !thisFromH ||
+            graph.haveConflictingRelation(*thisFromH, edge.rel(), *thisToH)) {
             noConflict = false;
             continue;
         }
 
-        if (!graph.haveConflictingRelation(*thisFromH, edge.rel(), *thisToH)) {
-            bool ch = graph.addRelation(*thisFromH, edge.rel(), *thisToH);
-            updateChanged(ch);
-        } else
-            noConflict = false;
+        bool ch = graph.addRelation(*thisFromH, edge.rel(), *thisToH);
+        updateChanged(ch);
     }
     return noConflict;
 }
@@ -394,6 +412,14 @@ void ValueRelations::areMerged(Handle to, Handle from) {
     bucketToVals.erase(from);
 }
 
+ValueRelations::HandlePtr ValueRelations::getBorderH(size_t id) const {
+    return graph.getBorderB(id);
+}
+
+size_t ValueRelations::getBorderId(Handle h) const {
+    return graph.getBorderId(h);
+}
+
 std::string strip(std::string str, size_t skipSpaces) {
     assert(!str.empty() && !std::isspace(str[0]));
 
@@ -408,15 +434,14 @@ std::string strip(std::string str, size_t skipSpaces) {
 }
 
 #ifndef NDEBUG
-void dump(std::ostream &out, ValueRelations::Handle h,
-          const ValueRelations::BucketToVals &map) {
-    auto found = map.find(h);
-    assert(found != map.end());
+void ValueRelations::dump(ValueRelations::Handle h, std::ostream &out) const {
+    auto found = bucketToVals.find(h);
+    assert(found != bucketToVals.end());
     const VectorSet<ValueRelations::V> &vals = found->second;
 
     out << "{{ ";
     if (vals.empty())
-        out << "placeholder ";
+        out << "placeholder " << h.id << " ";
     else
         for (ValueRelations::V val : vals)
             out << (val == *vals.begin() ? "" : " | ")
@@ -424,22 +449,39 @@ void dump(std::ostream &out, ValueRelations::Handle h,
     out << " }}";
 }
 
+void ValueRelations::dotDump(std::ostream &out) const {
+    out << "digraph G {\n";
+    for (auto it = begin_buckets(Relations().eq().slt().sle().ult().ule().pt());
+         it != end_buckets(); ++it) {
+        out << "  RNODE" << it->from().id << " [label=\"" << it->from().id
+            << ": ";
+        dump(it->from(), out);
+        out << "\"]; ";
+        if (it->rel() != Relations::EQ)
+            out << "  RNODE" << it->from().id << " -> "
+                << "RNODE" << it->to().id << " [label=\"" << it->rel()
+                << "\"];";
+    }
+    out << "}\n";
+}
+
 std::ostream &operator<<(std::ostream &out, const ValueRelations &vr) {
     for (const auto &edge : vr.graph) {
         if (edge.rel() == Relations::EQ) {
             if (!edge.to().hasAnyRelation()) {
                 out << "              ";
-                dump(out, edge.to(), vr.bucketToVals);
+                vr.dump(edge.to(), out);
                 out << "\n";
             }
             continue;
         }
         out << "    " << edge << "    ";
-        dump(out, edge.from(), vr.bucketToVals);
+        vr.dump(edge.from(), out);
         out << " " << edge.rel() << " ";
-        dump(out, edge.to(), vr.bucketToVals);
+        vr.dump(edge.to(), out);
         out << "\n";
     }
+    vr.graph.dumpBorderBuckets(out);
     return out;
 }
 #endif

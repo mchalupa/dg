@@ -218,20 +218,36 @@ void StructureAnalyzer::findLoops() {
 
             for (auto it = codeGraph.lazy_dfs_begin(function, location);
                  it != codeGraph.lazy_dfs_end(); ++it) {
-                VREdge *edge = it.getEdge();
-                if (backwardReach.find(edge) != backwardReach.end()) {
-                    if (edge->op->isInstruction()) {
-                        auto *op = static_cast<VRInstruction *>(edge->op.get());
-                        loop.emplace_back(op->getInstruction());
-                    }
+                VRLocation &source = *it;
+
+                if (backwardReach.find(&source) == backwardReach.end())
+                    continue;
+
+                for (size_t i = 0; i < source.succsSize(); ++i) {
+                    VREdge *edge = source.getSuccEdge(i);
+                    if (!edge->target)
+                        continue;
+
+                    if (backwardReach.find(edge->target) !=
+                        backwardReach.end()) {
+                        if (edge->op->isInstruction()) {
+                            auto *op = static_cast<VRInstruction *>(
+                                    edge->op.get());
+                            loop.emplace_back(op->getInstruction());
+                        }
+                    } else
+                        location.loopEnds.emplace_back(edge);
                 }
+
+                if (&source != &location && (!source.join || location.join))
+                    source.join = &location;
             }
         }
     }
 }
 
-std::set<VREdge *> StructureAnalyzer::collectBackward(const llvm::Function &f,
-                                                      VRLocation &from) {
+std::set<VRLocation *>
+StructureAnalyzer::collectBackward(const llvm::Function &f, VRLocation &from) {
     std::vector<VREdge *> &predEdges = from.predecessors;
 
     // remove the incoming tree edge, so that backwardReach would
@@ -246,24 +262,13 @@ std::set<VREdge *> StructureAnalyzer::collectBackward(const llvm::Function &f,
     }
     assert(treePred); // every join has to have exactly one tree predecessor
 
-    std::set<VREdge *> result;
+    std::set<VRLocation *> result;
     for (auto it = codeGraph.backward_dfs_begin(f, from);
          it != codeGraph.backward_dfs_end(); ++it) {
-        if (VREdge *edge = it.getEdge())
-            result.emplace(edge);
+        result.emplace(&*it);
     }
 
-    assert(from.succsSize() >= 1);
-    // since from is marked visited at the beginning, these edge would never be
-    // visited
-    for (auto &edge : from.successors) {
-        // graph is build such that every assume is followed by noop and only
-        // possibility of having more than one successor is to have outgoing
-        // assume edges
-        assert(edge->target->succsSize() == 1);
-        if (result.find(edge->target->getSuccEdge(0)) != result.end())
-            result.emplace(edge.get());
-    }
+    assert(result.find(&from) != result.end());
 
     // put the tree edge back in
     predEdges.emplace_back(treePred);
@@ -717,6 +722,57 @@ bool StructureAnalyzer::isDefined(VRLocation *loc,
     return definedHere.find(val) != definedHere.end();
 }
 
+std::vector<const VREdge *>
+StructureAnalyzer::possibleSources(const llvm::PHINode *phi, bool bval) const {
+    std::vector<const VREdge *> result;
+    for (unsigned i = 0; i < phi->getNumIncomingValues(); ++i) {
+        const llvm::Value *val = phi->getIncomingValue(i);
+        const auto *cVal = llvm::dyn_cast<llvm::ConstantInt>(val);
+
+        if (!cVal || (cVal->isOne() && bval) || (cVal->isZero() && !bval)) {
+            const auto *block = phi->getIncomingBlock(i);
+            const VRLocation &end = codeGraph.getVRLocation(
+                    &*std::prev(std::prev(block->end())));
+            assert(end.succsSize() == 1);
+            result.emplace_back(end.getSuccEdge(0));
+        }
+    }
+    return result;
+}
+
+std::vector<const llvm::ICmpInst *>
+StructureAnalyzer::getRelevantConditions(const VRAssumeBool *assume) const {
+    if (const auto *icmp = llvm::dyn_cast<llvm::ICmpInst>(assume->getValue()))
+        return {icmp};
+
+    const auto *phi = llvm::dyn_cast<llvm::PHINode>(assume->getValue());
+    if (!phi)
+        return {};
+
+    std::vector<const llvm::ICmpInst *> result;
+    std::vector<const llvm::PHINode *> to_process{phi};
+
+    while (!to_process.empty()) {
+        const auto *phi = to_process.back();
+        to_process.pop_back();
+
+        for (const auto *sourceEdge :
+             possibleSources(phi, assume->getAssumption())) {
+            assert(sourceEdge->op->isInstruction());
+            const llvm::Instruction *inst =
+                    static_cast<const VRInstruction *>(sourceEdge->op.get())
+                            ->getInstruction();
+            if (const auto *icmp = llvm::dyn_cast<llvm::ICmpInst>(inst))
+                result.emplace_back(icmp);
+            else if (const auto *phi = llvm::dyn_cast<llvm::PHINode>(inst))
+                to_process.emplace_back(phi);
+            else
+                return {};
+        }
+    }
+    return result;
+}
+
 std::pair<unsigned, const AllocatedArea *>
 StructureAnalyzer::getAllocatedAreaFor(const llvm::Value *ptr) const {
     unsigned i = 0;
@@ -740,23 +796,65 @@ StructureAnalyzer::getCallRelationsFor(const llvm::Instruction *inst) const {
 }
 
 void StructureAnalyzer::addPrecondition(const llvm::Function *func,
-                                        const llvm::Value *lt,
+                                        const llvm::Argument *lt,
                                         Relations::Type rel,
                                         const llvm::Value *rt) {
-    Precondition p{lt, rel, rt};
-    VectorSet<Precondition> vec{std::move(p)};
-    preconditionsMap.emplace(func, std::move(vec));
+    preconditionsMap[func].emplace_back(lt, rel, rt);
 }
 
 bool StructureAnalyzer::hasPreconditions(const llvm::Function *func) const {
     return preconditionsMap.find(func) != preconditionsMap.end();
 }
 
-const VectorSet<Precondition> &
+const std::vector<Precondition> &
 StructureAnalyzer::getPreconditionsFor(const llvm::Function *func) const {
     assert(preconditionsMap.find(func) != preconditionsMap.end());
     return preconditionsMap.find(func)->second;
 }
+
+size_t StructureAnalyzer::addBorderValue(const llvm::Function *func,
+                                         const llvm::Argument *from,
+                                         const llvm::Value *stored) {
+    auto &borderVals = borderValues[func];
+    auto id = borderVals.size();
+    borderVals.emplace_back(id, from, stored);
+    return id;
+}
+
+bool StructureAnalyzer::hasBorderValues(const llvm::Function *func) const {
+    return borderValues.find(func) != borderValues.end();
+}
+
+const std::vector<BorderValue> &
+StructureAnalyzer::getBorderValuesFor(const llvm::Function *func) const {
+    assert(hasBorderValues(func));
+    return borderValues.find(func)->second;
+}
+
+const llvm::Argument *
+StructureAnalyzer::getBorderArgumentFor(const llvm::Function *func,
+                                        size_t id) const {
+    for (const auto &bv : getBorderValuesFor(func)) {
+        if (bv.id == id)
+            return bv.from;
+    }
+    return nullptr;
+}
+
+#ifndef NDEBUG
+void StructureAnalyzer::dumpBorderValues(std::ostream &out) const {
+    out << "[ \n";
+    for (auto &foo : borderValues) {
+        out << "    " << foo.first->getName().str() << ": ";
+        for (auto &bv : foo.second)
+            out << "("
+                << "id " << bv.id << ", "
+                << "from " << debug::getValName(bv.from) << ", "
+                << "stored " << debug::getValName(bv.stored) << "), ";
+    }
+    out << "\n]\n";
+}
+#endif
 
 } // namespace vr
 } // namespace dg

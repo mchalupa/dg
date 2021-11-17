@@ -10,58 +10,11 @@
 #include <algorithm>
 
 #include "GraphElements.h"
+#include "StructureElements.h"
 #include "dg/AnalysisOptions.h"
 
 namespace dg {
 namespace vr {
-
-struct AllocatedSizeView {
-    const llvm::Value *elementCount = nullptr;
-    uint64_t elementSize = 0; // in bytes
-
-    AllocatedSizeView() = default;
-    AllocatedSizeView(const llvm::Value *count, uint64_t size)
-            : elementCount(count), elementSize(size) {}
-};
-
-class AllocatedArea {
-    const llvm::Value *ptr;
-    // used only if memory was allocated with realloc, as fallback when realloc
-    // fails
-    const llvm::Value *reallocatedPtr = nullptr;
-    AllocatedSizeView originalSizeView;
-
-  public:
-    static const llvm::Value *stripCasts(const llvm::Value *inst);
-
-    static uint64_t getBytes(const llvm::Type *type);
-
-    AllocatedArea(const llvm::AllocaInst *alloca);
-
-    AllocatedArea(const llvm::CallInst *call);
-
-    const llvm::Value *getPtr() const { return ptr; }
-    const llvm::Value *getReallocatedPtr() const { return reallocatedPtr; }
-
-    std::vector<AllocatedSizeView> getAllocatedSizeViews() const;
-
-#ifndef NDEBUG
-    void ddump() const;
-#endif
-};
-
-struct CallRelation {
-    std::vector<std::pair<const llvm::Argument *, const llvm::Value *>>
-            equalPairs;
-    VRLocation *callSite = nullptr;
-};
-
-/* arg is left of rel */
-struct Precondition {
-    const llvm::Value *arg;
-    Relations::Type rel;
-    const llvm::Value *val;
-};
 
 class StructureAnalyzer {
     const llvm::Module &module;
@@ -70,7 +23,8 @@ class StructureAnalyzer {
     // holds vector of instructions, which are processed on any path back to
     // given location is computed only for locations with more than one
     // predecessor
-    std::map<VRLocation *, std::vector<const llvm::Instruction *>> inloopValues;
+    std::map<const VRLocation *, std::vector<const llvm::Instruction *>>
+            inloopValues;
 
     // holds vector of values, which are defined at given location
     std::map<VRLocation *, std::set<const llvm::Value *>> defined;
@@ -85,14 +39,16 @@ class StructureAnalyzer {
     std::map<const llvm::Function *, std::vector<CallRelation>>
             callRelationsMap;
 
-    std::map<const llvm::Function *, VectorSet<Precondition>> preconditionsMap;
+    std::map<const llvm::Function *, std::vector<Precondition>>
+            preconditionsMap;
+    std::map<const llvm::Function *, std::vector<BorderValue>> borderValues;
 
     void categorizeEdges();
 
     void findLoops();
 
-    std::set<VREdge *> collectBackward(const llvm::Function &f,
-                                       VRLocation &from);
+    std::set<VRLocation *> collectBackward(const llvm::Function &f,
+                                           VRLocation &from);
 
     void initializeDefined();
 
@@ -151,9 +107,14 @@ class StructureAnalyzer {
 
     bool isDefined(VRLocation *loc, const llvm::Value *val) const;
 
+    std::vector<const VREdge *> possibleSources(const llvm::PHINode *phi,
+                                                bool bval) const;
+    std::vector<const llvm::ICmpInst *>
+    getRelevantConditions(const VRAssumeBool *assume) const;
+
     // assumes that location is valid loop start (join of tree and back edges)
     const std::vector<const llvm::Instruction *> &
-    getInloopValues(VRLocation &location) const {
+    getInloopValues(const VRLocation &location) const {
         return inloopValues.at(&location);
     }
 
@@ -170,13 +131,29 @@ class StructureAnalyzer {
     const std::vector<CallRelation> &
     getCallRelationsFor(const llvm::Instruction *inst) const;
 
-    void addPrecondition(const llvm::Function *func, const llvm::Value *lt,
+    void addPrecondition(const llvm::Function *func, const llvm::Argument *lt,
                          Relations::Type rel, const llvm::Value *rt);
 
     bool hasPreconditions(const llvm::Function *func) const;
 
-    const VectorSet<Precondition> &
+    const std::vector<Precondition> &
     getPreconditionsFor(const llvm::Function *func) const;
+
+    size_t addBorderValue(const llvm::Function *func,
+                          const llvm::Argument *from,
+                          const llvm::Value *stored);
+
+    bool hasBorderValues(const llvm::Function *func) const;
+
+    const std::vector<BorderValue> &
+    getBorderValuesFor(const llvm::Function *func) const;
+
+    const llvm::Argument *getBorderArgumentFor(const llvm::Function *func,
+                                               size_t id) const;
+
+#ifndef NDEBUG
+    void dumpBorderValues(std::ostream &out = std::cerr) const;
+#endif
 };
 
 } // namespace vr

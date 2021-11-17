@@ -48,6 +48,7 @@ struct ValueRelations {
     HandlePtr maybeGet(V val) const;
 
     static std::pair<BRef, bool> get(Handle h) { return {h, false}; }
+    std::pair<BRef, bool> get(size_t id);
     std::pair<BRef, bool> get(V val);
 
     V getAny(Handle h) const;
@@ -86,20 +87,13 @@ struct ValueRelations {
     Relations _between(V lt, Handle rt) const;
     Relations _between(C lt, Handle rt) const;
     Relations _between(V lt, V rt) const;
-
-    // ************************** general has ***************************** //
     template <typename X>
-    bool has(const X &val, Relations::Type rel) const {
-        HandlePtr mVal = maybeGet(val);
-        return mVal && mVal->hasRelation(rel);
+    Relations _between(size_t lt, const X &rt) const {
+        HandlePtr mH = getBorderH(lt);
+        return mH ? _between(*mH, rt) : Relations();
     }
-    template <typename X>
-    bool has(const X &val, Relations rels) const {
-        HandlePtr mVal = maybeGet(val);
-        return mVal && ((rels.has(Relations::EQ) &&
-                         bucketToVals.find(*mVal)->second.size() > 1) ||
-                        mVal->hasAnyRelation(rels.set(Relations::EQ, false)));
-    }
+    Relations _between(Handle lt, size_t rt) const;
+    Relations _between(V lt, size_t rt) const;
 
     // *************************** iterators ***************************** //
     class RelatedValueIterator {
@@ -259,7 +253,24 @@ struct ValueRelations {
     using plain_iterator = PlainValueIterator;
 
     // ****************************** get ********************************* //
-    Handle getHandle(V val) const;
+    HandlePtr getHandle(V val) const;
+
+    template <typename I>
+    const I *getInstance(V v) const {
+        HandlePtr mH = maybeGet(v);
+        if (!mH)
+            return llvm::dyn_cast<I>(v);
+        return getInstance<I>(*mH);
+    }
+
+    template <typename I>
+    const I *getInstance(Handle h) const {
+        for (const auto *val : getEqual(h)) {
+            if (const auto *inst = llvm::dyn_cast<I>(val))
+                return inst;
+        }
+        return nullptr;
+    }
 
     // ****************************** set ********************************* //
     template <typename X, typename Y>
@@ -278,7 +289,7 @@ struct ValueRelations {
         Relations::Type rel = rels.get();
         set(lt, rel, rt);
         Relations other = rels & Relations().ult().ule().ugt().uge();
-        if (other.any() && other.get() != rel)
+        if (other.any() && !Relations().set(rel).addImplied().has(other.get()))
             set(lt, other.get(), rt);
     }
     template <typename X, typename Y>
@@ -349,6 +360,18 @@ struct ValueRelations {
 
     // ****************************** has ********************************* //
     template <typename X>
+    bool has(const X &val, Relations::Type rel) const {
+        HandlePtr mVal = maybeGet(val);
+        return mVal && mVal->hasRelation(rel);
+    }
+    template <typename X>
+    bool has(const X &val, Relations rels) const {
+        HandlePtr mVal = maybeGet(val);
+        return mVal && ((rels.has(Relations::EQ) &&
+                         bucketToVals.find(*mVal)->second.size() > 1) ||
+                        mVal->hasAnyRelation(rels.set(Relations::EQ, false)));
+    }
+    template <typename X>
     bool hasLoad(const X &from) const {
         return has(from, Relations::PT);
     }
@@ -412,7 +435,8 @@ struct ValueRelations {
     RelGraph::RelationsMap getRelated(const X &val,
                                       const Relations &rels) const {
         HandlePtr mH = maybeGet(val);
-        assert(mH);
+        if (!mH)
+            return {};
         return graph.getRelated(*mH, rels);
     }
 
@@ -448,6 +472,12 @@ struct ValueRelations {
     const std::vector<bool> &getValidAreas() const { return validAreas; }
 
     // ************************** placeholder ***************************** //
+    Handle newBorderBucket(size_t id) {
+        Handle h = graph.getBorderBucket(id);
+        bucketToVals[h];
+        return h;
+    }
+
     template <typename X>
     Handle newPlaceholderBucket(const X &from) {
         HandlePtr mH = maybeGet(from);
@@ -473,7 +503,12 @@ struct ValueRelations {
     }
     bool holdsAnyRelations() const;
 
+    HandlePtr getBorderH(size_t id) const;
+    size_t getBorderId(Handle h) const;
+
 #ifndef NDEBUG
+    void dump(ValueRelations::Handle h, std::ostream &out = std::cerr) const;
+    void dotDump(std::ostream &out = std::cerr) const;
     friend std::ostream &operator<<(std::ostream &out,
                                     const ValueRelations &vr);
 #endif

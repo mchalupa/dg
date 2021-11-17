@@ -23,6 +23,7 @@ namespace vr {
 
 class RelationsAnalyzer {
     using Handle = ValueRelations::Handle;
+    using HandlePtr = ValueRelations::HandlePtr;
     using HandleRef = ValueRelations::BRef;
     using Relation = Relations::Type;
     using V = ValueRelations::V;
@@ -51,9 +52,6 @@ class RelationsAnalyzer {
     bool mayOverwrite(I inst, V address) const;
 
     // ************************ operation helpers ************************* //
-    static void solvesDiffOne(ValueRelations &graph, V param,
-                              const llvm::BinaryOperator *op,
-                              Relations::Type rel);
     static bool operandsEqual(ValueRelations &graph, I fst, I snd,
                               bool sameOrder);
     void solveByOperands(ValueRelations &graph,
@@ -62,8 +60,18 @@ class RelationsAnalyzer {
                        const llvm::BinaryOperator *operation);
     void solveCommutativity(ValueRelations &graph,
                             const llvm::BinaryOperator *operation);
+    enum class Shift { INC, DEC, EQ, UNKNOWN };
+    static Shift getShift(const llvm::BinaryOperator *op,
+                          const VectorSet<V> &froms);
+    static Shift getShift(const llvm::GetElementPtrInst *op,
+                          const VectorSet<V> &froms);
+    static Shift getShift(const llvm::Value *val, const VectorSet<V> &froms);
+    Shift getShift(const std::vector<const VRLocation *> &changeLocations,
+                   const VectorSet<V> &froms) const;
     bool canShift(const ValueRelations &graph, V param, Relations::Type shift);
     void solveDifferent(ValueRelations &graph, const llvm::BinaryOperator *op);
+    void inferFromNEPointers(ValueRelations &newGraph,
+                             VRAssumeBool *assume) const;
 
     // ******************** gen from instruction ************************** //
     static void storeGen(ValueRelations &graph, const llvm::StoreInst *store);
@@ -79,33 +87,55 @@ class RelationsAnalyzer {
     static Relation ICMPToRel(const llvm::ICmpInst *icmp, bool assumption);
     static bool processICMP(const ValueRelations &oldGraph,
                             ValueRelations &newGraph, VRAssumeBool *assume);
-    bool processPhi(ValueRelations &newGraph, VRAssumeBool *assume) const;
+    bool processPhi(const ValueRelations &oldGraph, ValueRelations &newGraph,
+                    VRAssumeBool *assume) const;
 
     // *********************** merge helpers **************************** //
-    static Relations getCommon(const VRLocation &location, V lt,
-                               Relations known, V rt);
-    static void checkRelatesInAll(VRLocation &location, V lt, Relations known,
-                                  V rt, std::set<V> &setEqual);
-    static Relations getCommonByPointedTo(
-            V from, const std::vector<const ValueRelations *> &changeRelations,
-            V val, Relations rels);
-    static Relations getCommonByPointedTo(
-            V from, const std::vector<const ValueRelations *> &changeRelations,
-            V firstLoad, V prevVal);
-    std::pair<std::vector<const ValueRelations *>, V>
-    getChangeRelations(V from, VRLocation &join);
+    template <typename X, typename Y>
+    static Relations getCommon(const VRLocation &location, const X &lt,
+                               Relations known, const Y &rt) {
+        for (VREdge *predEdge : location.predecessors) {
+            const ValueRelations &predRels = predEdge->source->relations;
+            known &= predRels.between(lt, rt);
+            if (!known.any())
+                return Relations();
+        }
+        return known;
+    }
+    static void inferFromPreds(VRLocation &location, Handle lt, Relations known,
+                               Handle rt);
+    static Relations
+    getCommonByPointedTo(const VectorSet<V> &froms,
+                         const std::vector<const VRLocation *> &changeRelations,
+                         V val, Relations rels);
+    std::vector<const VRLocation *>
+    getBranchChangeLocations(const VRLocation &join,
+                             const VectorSet<V> &froms) const;
+    std::vector<const VRLocation *>
+    getLoopChangeLocations(const VRLocation &join,
+                           const VectorSet<V> &froms) const;
+
+    // get target locations of changing instructions
+    std::vector<const VRLocation *>
+    getChangeLocations(const VRLocation &join, const VectorSet<V> &froms);
     static std::pair<C, Relations> getBoundOnPointedToValue(
-            const std::vector<const ValueRelations *> &changeRelations, V from,
-            Relation rel);
-    static void relateToFirstLoad(
-            const std::vector<const ValueRelations *> &changeRelations, V from,
-            ValueRelations &newGraph, Handle placeholder, V firstLoad);
+            const std::vector<const VRLocation *> &changeLocations,
+            const VectorSet<V> &froms, Relation rel);
+    std::vector<const llvm::ICmpInst *> getEQICmp(const VRLocation &join);
+    void inferFromNonEquality(VRLocation &join, const VectorSet<V> &froms,
+                              Shift s, Handle placeholder);
+    void
+    inferShiftInLoop(const std::vector<const VRLocation *> &changeLocations,
+                     const VectorSet<V> &froms, ValueRelations &newGraph,
+                     Handle placeholder);
     static void
-    relateBounds(const std::vector<const ValueRelations *> &changeRelations,
-                 V from, ValueRelations &newGraph, Handle placeholder);
+    relateBounds(const std::vector<const VRLocation *> &changeLocations,
+                 const VectorSet<V> &froms, ValueRelations &newGraph,
+                 Handle placeholder);
     static void
-    relateValues(const std::vector<const ValueRelations *> &changeRelations,
-                 V from, ValueRelations &newGraph, Handle placeholder);
+    relateValues(const std::vector<const VRLocation *> &changeLocations,
+                 const VectorSet<V> &froms, ValueRelations &newGraph,
+                 Handle placeholder);
 
     // **************************** merge ******************************* //
     static void mergeRelations(VRLocation &location);
@@ -132,6 +162,19 @@ class RelationsAnalyzer {
             : module(m), codeGraph(g), structure(sa) {}
 
     unsigned analyze(unsigned maxPass);
+
+    static std::vector<V> getFroms(const ValueRelations &rels, V val);
+    static HandlePtr getHandleFromFroms(const ValueRelations &rels,
+                                        const std::vector<V> &froms);
+    static HandlePtr getHandleFromFroms(const ValueRelations &toRels,
+                                        const ValueRelations &fromRels, V val);
+
+    static HandlePtr getCorrespondingByContent(const ValueRelations &toRels,
+                                               const ValueRelations &fromRels,
+                                               Handle h);
+    static HandlePtr getCorrespondingByContent(const ValueRelations &toRels,
+                                               const VectorSet<V> &vals);
+    static const llvm::AllocaInst *getOrigin(const ValueRelations &rels, V val);
 };
 
 } // namespace vr

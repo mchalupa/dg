@@ -39,6 +39,9 @@ using llvm::errs;
 llvm::cl::opt<bool> todot("dot", llvm::cl::desc("Dump graph in grahviz format"),
                           llvm::cl::init(false));
 
+llvm::cl::opt<bool> joins("joins", llvm::cl::desc("Dump join informations"),
+                          llvm::cl::init(false));
+
 llvm::cl::opt<unsigned> max_iter("max-iter",
                                  llvm::cl::desc("Maximal number of iterations"),
                                  llvm::cl::init(20));
@@ -46,6 +49,81 @@ llvm::cl::opt<unsigned> max_iter("max-iter",
 llvm::cl::opt<std::string> inputFile(llvm::cl::Positional, llvm::cl::Required,
                                      llvm::cl::desc("<input file>"),
                                      llvm::cl::init(""));
+
+std::string node(const VRLocation &loc) {
+    return "  NODE" + std::to_string(loc.id);
+}
+
+std::string node(unsigned i) { return "  DUMMY_NODE" + std::to_string(i); }
+
+template <typename N1, typename N2>
+std::string edge(const N1 &n1, const N2 &n2) {
+    return node(n1) + "  ->" + node(n2);
+}
+
+std::string edgeTypeToColor(EdgeType type) {
+    switch (type) {
+    case EdgeType::TREE:
+        return "darkgreen";
+    case EdgeType::FORWARD:
+        return "blue";
+    case EdgeType::BACK:
+        return "red";
+    case EdgeType::DEFAULT:
+        return "pink";
+    }
+    assert(0 && "unreach");
+    abort();
+}
+
+void dumpNodes(const VRCodeGraph &codeGraph) {
+    for (auto &loc : codeGraph) {
+        std::cout << node(loc);
+        std::cout << "[shape=box, margin=0.15, label=\"";
+        std::cout << "LOCATION " << loc.id << "\n";
+#ifndef NDEBUG
+        std::cout << loc.relations;
+#endif
+        std::cout << "  \"];\n";
+    }
+}
+
+void dumpEdges(const VRCodeGraph &codeGraph) {
+    unsigned dummyIndex = 0;
+    for (const auto &loc : codeGraph) {
+        for (const auto &succ : loc.successors) {
+            if (succ->target)
+                std::cout << edge(loc, *succ->target);
+            else {
+                std::cout << node(++dummyIndex) << "\n";
+                std::cout << edge(loc, dummyIndex);
+            }
+            std::cout << " [label=\"";
+#ifndef NDEBUG
+            succ->op->dump();
+#endif
+            std::cout << "\", color=" << edgeTypeToColor(succ->type) << "];\n";
+        }
+
+        if (loc.isJustLoopJoin()) {
+            for (auto e : loc.loopEnds) {
+                std::cout << edge(loc, *e->target) << " [color=magenta];\n";
+            }
+        }
+
+        if (joins && loc.join)
+            std::cout << edge(loc, *loc.join) << " [color=pink];\n";
+    }
+}
+
+void dotDump(const VRCodeGraph &codeGraph) {
+    std::cout << "digraph VR {\n";
+
+    dumpNodes(codeGraph);
+    dumpEdges(codeGraph);
+
+    std::cout << "}\n";
+}
 
 int main(int argc, char *argv[]) {
     llvm::Module *M;
@@ -98,53 +176,8 @@ int main(int argc, char *argv[]) {
               << "\n";
     std::cerr << "\n";
 
-    if (todot) {
-        std::cout << "digraph VR {\n";
-        for (auto &loc : codeGraph) {
-            std::cout << "  NODE" << loc.id;
-            std::cout << "[shape=box, margin=0.15, label=\"";
-            std::cout << "LOCATION " << loc.id << "\\n";
-#ifndef NDEBUG
-            std::cout << loc.relations;
-#endif
-            std::cout << "\"];\n";
-        }
-
-        unsigned dummyIndex = 0;
-        for (auto &loc : codeGraph) {
-            for (const auto &succ : loc.successors) {
-                if (succ->target)
-                    std::cout << "  NODE" << loc.id << " -> NODE"
-                              << succ->target->id;
-                else {
-                    std::cout << "DUMMY_NODE" << ++dummyIndex << "\n";
-                    std::cout << "  NODE" << loc.id << " -> DUMMY_NODE"
-                              << dummyIndex;
-                }
-                std::cout << " [label=\"";
-#ifndef NDEBUG
-                succ->op->dump();
-#endif
-                std::cout << "\", color=";
-                switch (succ->type) {
-                case EdgeType::TREE:
-                    std::cout << "darkgreen";
-                    break;
-                case EdgeType::FORWARD:
-                    std::cout << "blue";
-                    break;
-                case EdgeType::BACK:
-                    std::cout << "red";
-                    break;
-                case EdgeType::DEFAULT:
-                    std::cout << "pink";
-                    break;
-                }
-                std::cout << "];\n";
-            }
-        }
-        std::cout << "}\n";
-    }
+    if (todot)
+        dotDump(codeGraph);
 
     return 0;
 }
