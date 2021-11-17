@@ -438,20 +438,21 @@ void RelationsAnalyzer::solveDifferent(ValueRelations &graph,
     if (canShift(graph, param, shift)) {
         graph.set(param, shift, op);
 
+        std::vector<V> sample =
+                graph.getDirectlyRelated(param, Relations().set(shift));
+
+        for (V val : sample) {
+            assert(graph.are(param, shift, val));
+            graph.set(op, Relations::getNonStrict(shift), val);
+        }
+
         auto boundC = graph.getBound(param, Relations::getNonStrict(shift));
-        if (boundC.first) {
-            if (boundC.second.has(shift))
-                graph.set(op, Relations::getNonStrict(shift), boundC.first);
-            else {
-                int64_t intC = boundC.first->getSExtValue();
-                if (shift == Relations::SLT)
-                    intC += 1;
-                else
-                    intC -= 1;
-                const auto *newBound = llvm::ConstantInt::get(
-                        boundC.first->getType(), intC, true);
-                graph.set(op, Relations::getNonStrict(shift), newBound);
-            }
+        if (boundC.first && boundC.second.has(Relations::getNonStrict(shift))) {
+            int64_t intC = boundC.first->getSExtValue();
+            intC += shift == Relations::SLT ? 1 : -1;
+            const auto *newBound =
+                    llvm::ConstantInt::get(boundC.first->getType(), intC, true);
+            graph.set(op, Relations::getNonStrict(shift), newBound);
         }
     }
 }
