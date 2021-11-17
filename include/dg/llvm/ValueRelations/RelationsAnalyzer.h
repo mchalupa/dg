@@ -72,6 +72,9 @@ class RelationsAnalyzer {
     void solveDifferent(ValueRelations &graph, const llvm::BinaryOperator *op);
     void inferFromNEPointers(ValueRelations &newGraph,
                              VRAssumeBool *assume) const;
+    bool findEqualBorderBucket(const ValueRelations &relations,
+                               const llvm::Value *mBorderV,
+                               const llvm::Value *comparedV);
 
     // ******************** gen from instruction ************************** //
     static void storeGen(ValueRelations &graph, const llvm::StoreInst *store);
@@ -85,10 +88,9 @@ class RelationsAnalyzer {
 
     // ******************** process assumption ************************** //
     static Relation ICMPToRel(const llvm::ICmpInst *icmp, bool assumption);
-    static bool processICMP(const ValueRelations &oldGraph,
-                            ValueRelations &newGraph, VRAssumeBool *assume);
-    bool processPhi(const ValueRelations &oldGraph, ValueRelations &newGraph,
-                    VRAssumeBool *assume) const;
+    bool processICMP(const ValueRelations &oldGraph, ValueRelations &newGraph,
+                     VRAssumeBool *assume);
+    bool processPhi(ValueRelations &newGraph, VRAssumeBool *assume);
 
     // *********************** merge helpers **************************** //
     template <typename X, typename Y>
@@ -104,10 +106,24 @@ class RelationsAnalyzer {
     }
     static void inferFromPreds(VRLocation &location, Handle lt, Relations known,
                                Handle rt);
+    template <typename X>
     static Relations
     getCommonByPointedTo(const VectorSet<V> &froms,
-                         const std::vector<const VRLocation *> &changeRelations,
-                         V val, Relations rels);
+                         const std::vector<const VRLocation *> &changeLocations,
+                         const X &val, Relations rels) {
+        for (unsigned i = 1; i < changeLocations.size(); ++i) {
+            const ValueRelations &graph = changeLocations[i]->relations;
+            HandlePtr from = getCorrespondingByContent(graph, froms);
+            assert(from);
+            assert(graph.hasLoad(*from));
+            Handle loaded = graph.getPointedTo(*from);
+
+            rels &= graph.between(loaded, val);
+            if (!rels.any())
+                break;
+        }
+        return rels;
+    }
     std::vector<const VRLocation *>
     getBranchChangeLocations(const VRLocation &join,
                              const VectorSet<V> &froms) const;
@@ -146,8 +162,7 @@ class RelationsAnalyzer {
     void rememberValidated(const ValueRelations &prev, ValueRelations &graph,
                            I inst) const;
     bool processAssumeBool(const ValueRelations &oldGraph,
-                           ValueRelations &newGraph,
-                           VRAssumeBool *assume) const;
+                           ValueRelations &newGraph, VRAssumeBool *assume);
     static bool processAssumeEqual(const ValueRelations &oldGraph,
                                    ValueRelations &newGraph,
                                    VRAssumeEqual *assume);

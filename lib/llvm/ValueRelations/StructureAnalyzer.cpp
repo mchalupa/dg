@@ -831,14 +831,15 @@ StructureAnalyzer::getBorderValuesFor(const llvm::Function *func) const {
     return borderValues.find(func)->second;
 }
 
-const llvm::Argument *
-StructureAnalyzer::getBorderArgumentFor(const llvm::Function *func,
-                                        size_t id) const {
+const BorderValue &
+StructureAnalyzer::getBorderValueFor(const llvm::Function *func,
+                                     size_t id) const {
     for (const auto &bv : getBorderValuesFor(func)) {
         if (bv.id == id)
-            return bv.from;
+            return bv;
     }
-    return nullptr;
+    assert(0 && "unreachable");
+    abort();
 }
 
 #ifndef NDEBUG
