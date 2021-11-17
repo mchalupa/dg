@@ -221,17 +221,34 @@ void RelationsAnalyzer::loadGen(ValueRelations &graph,
     graph.setLoad(load->getPointerOperand()->stripPointerCasts(), load);
 }
 
+int toChange(const llvm::GetElementPtrInst *gep) {
+    if (gep->getNumIndices() != 1)
+        return 0;
+    if (const auto *i = llvm::dyn_cast<llvm::ConstantInt>(gep->getOperand(1))) {
+        if (i->isOne())
+            return 1;
+        if (i->isMinusOne())
+            return -1;
+    }
+    return 0;
+}
+
 void RelationsAnalyzer::gepGen(ValueRelations &graph,
                                const llvm::GetElementPtrInst *gep) {
     if (gep->hasAllZeroIndices())
         graph.setEqual(gep, gep->getPointerOperand());
 
-    if (const auto *i = llvm::dyn_cast<llvm::ConstantInt>(gep->getOperand(1))) {
-        if (i->isOne())
-            graph.set(gep->getPointerOperand(), Relations::SLT, gep);
-        else if (i->isMinusOne())
-            graph.set(gep->getPointerOperand(), Relations::SGT, gep);
+    int thisChange = toChange(gep);
+    if (const auto *origGep = graph.getInstance<llvm::GetElementPtrInst>(
+                gep->getPointerOperand())) {
+        int origChange = toChange(origGep);
+        if (thisChange && origChange && thisChange + origChange == 0)
+            graph.set(gep, Relations::EQ, origGep->getPointerOperand());
     }
+
+    if (thisChange)
+        graph.set(gep->getPointerOperand(),
+                  thisChange == 1 ? Relations::SLT : Relations::SGT, gep);
 
     for (auto it = graph.begin_buckets(Relations().pt());
          it != graph.end_buckets(); ++it) {
@@ -533,6 +550,71 @@ RelationsAnalyzer::ICMPToRel(const llvm::ICmpInst *icmp, bool assumption) {
     }
 }
 
+size_t limitingBorder(const ValueRelations &relations, const llvm::Value *val) {
+    for (const auto &handleRel : relations.getRelated(val, Relations().sle())) {
+        auto mId = relations.getBorderId(handleRel.first);
+        if (mId != std::string::npos)
+            return mId;
+    }
+    return std::string::npos;
+}
+
+bool RelationsAnalyzer::findEqualBorderBucket(const ValueRelations &relations,
+                                              const llvm::Value *mBorderV,
+                                              const llvm::Value *comparedV) {
+    const auto *comparedI = llvm::dyn_cast<llvm::Instruction>(comparedV);
+    if (!llvm::isa<llvm::Instruction>(mBorderV) || !comparedI)
+        return false;
+    if (!relations.contains(mBorderV) || !relations.contains(comparedV))
+        return false;
+
+    const auto &borderFroms = getFroms(relations, mBorderV);
+    const auto &comparedFroms = getFroms(relations, comparedV);
+
+    if (borderFroms.size() != 2 || comparedFroms.size() != 2)
+        return false;
+
+    auto mBorderId = limitingBorder(relations, borderFroms[0]);
+    if (mBorderId == std::string::npos)
+        return false;
+
+    // if (limitingBorder(relations, comparedFroms[0]) != std::string::npos)
+    //     return true;
+
+    const llvm::Argument *arg =
+            getArgument(relations, *relations.getHandle(comparedFroms[0]));
+    if (!arg)
+        return false;
+
+    const auto *func = comparedI->getFunction();
+    assert(structure.hasBorderValues(func));
+    const BorderValue &bv = structure.getBorderValueFor(func, mBorderId);
+    for (const auto &borderVal : structure.getBorderValuesFor(func)) {
+        if (borderVal.from == arg && borderVal.stored == bv.stored) {
+            assert(codeGraph.getVRLocation(comparedI).join);
+            VRLocation &join = const_cast<VRLocation &>(
+                    *codeGraph.getVRLocation(comparedI).join);
+            assert(join.relations.has(comparedFroms[1], Relations::PT));
+            const auto &placeholder =
+                    join.relations.getPointedTo(comparedFroms[1]);
+
+            auto thisBorderPlaceholder =
+                    join.relations.getBorderH(borderVal.id);
+            assert(thisBorderPlaceholder);
+            join.relations.set(placeholder, Relations::SLE,
+                               *thisBorderPlaceholder);
+            return true;
+        }
+    }
+
+    auto id = structure.addBorderValue(func, arg, bv.stored);
+    ValueRelations &entryRels = codeGraph.getEntryLocation(*func).relations;
+    Handle entryBorderPlaceholder = entryRels.newBorderBucket(id);
+    entryRels.set(entryBorderPlaceholder, Relations::PT, bv.stored);
+    entryRels.set(entryBorderPlaceholder, Relations::SGE, arg);
+    return true;
+}
+
 bool RelationsAnalyzer::processICMP(const ValueRelations &oldGraph,
                                     ValueRelations &newGraph,
                                     VRAssumeBool *assume) {
@@ -548,6 +630,11 @@ bool RelationsAnalyzer::processICMP(const ValueRelations &oldGraph,
         return false;
 
     newGraph.set(op1, rel, op2);
+
+    if (rel == Relations::EQ) {
+        if (!findEqualBorderBucket(oldGraph, op1, op2))
+            findEqualBorderBucket(oldGraph, op2, op1);
+    }
     return true;
 }
 
@@ -586,7 +673,8 @@ void RelationsAnalyzer::inferFromNEPointers(ValueRelations &newGraph,
             size_t id = newGraph.getBorderId(related.first);
             if (id == std::string::npos)
                 continue;
-            auto arg = structure.getBorderArgumentFor(load->getFunction(), id);
+            auto arg =
+                    structure.getBorderValueFor(load->getFunction(), id).from;
             if (newGraph.are(arg, related.second.get(),
                              load->getPointerOperand())) {
                 Relations::Type toSet =
@@ -599,9 +687,8 @@ void RelationsAnalyzer::inferFromNEPointers(ValueRelations &newGraph,
     }
 }
 
-bool RelationsAnalyzer::processPhi(const ValueRelations &oldGraph,
-                                   ValueRelations &newGraph,
-                                   VRAssumeBool *assume) const {
+bool RelationsAnalyzer::processPhi(ValueRelations &newGraph,
+                                   VRAssumeBool *assume) {
     const llvm::PHINode *phi = llvm::cast<llvm::PHINode>(assume->getValue());
     const auto &sources =
             structure.possibleSources(phi, assume->getAssumption());
@@ -614,7 +701,8 @@ bool RelationsAnalyzer::processPhi(const ValueRelations &oldGraph,
     bool result;
     if (icmp) {
         VRAssumeBool tmp{inst->getInstruction(), assume->getAssumption()};
-        result = processICMP(oldGraph, newGraph, &tmp);
+        result = processICMP(codeGraph.getVRLocation(icmp).relations, newGraph,
+                             &tmp);
         if (!result)
             return false;
     }
@@ -677,24 +765,6 @@ void RelationsAnalyzer::inferFromPreds(VRLocation &location, Handle lt,
             newGraph.set(ltId, related, rtId);
         }
     }
-}
-
-Relations RelationsAnalyzer::getCommonByPointedTo(
-        const VectorSet<V> &froms,
-        const std::vector<const VRLocation *> &changeLocations, V val,
-        Relations rels) {
-    for (unsigned i = 1; i < changeLocations.size(); ++i) {
-        const ValueRelations &graph = changeLocations[i]->relations;
-        HandlePtr from = getCorrespondingByContent(graph, froms);
-        assert(from);
-        assert(graph.hasLoad(*from));
-        Handle loaded = graph.getPointedTo(*from);
-
-        rels &= graph.between(loaded, val);
-        if (!rels.any())
-            break;
-    }
-    return rels;
 }
 
 std::vector<const VRLocation *>
@@ -978,6 +1048,19 @@ void RelationsAnalyzer::relateValues(
             if (common.any())
                 newGraph.set(placeholder, common, related);
         }
+
+        size_t mBorderId = predGraph.getBorderId(relatedH);
+        if (mBorderId != std::string::npos) {
+            Relations common = getCommonByPointedTo(froms, changeLocations,
+                                                    mBorderId, relations);
+
+            if (common.any()) {
+                auto borderH = newGraph.getBorderH(mBorderId);
+                if (!borderH)
+                    borderH = &newGraph.newBorderBucket(mBorderId);
+                newGraph.set(placeholder, common, *borderH);
+            }
+        }
     }
 }
 
@@ -1120,11 +1203,11 @@ void RelationsAnalyzer::rememberValidated(const ValueRelations &prev,
 
 bool RelationsAnalyzer::processAssumeBool(const ValueRelations &oldGraph,
                                           ValueRelations &newGraph,
-                                          VRAssumeBool *assume) const {
+                                          VRAssumeBool *assume) {
     if (llvm::isa<llvm::ICmpInst>(assume->getValue()))
         return processICMP(oldGraph, newGraph, assume);
     if (llvm::isa<llvm::PHINode>(assume->getValue()))
-        return processPhi(oldGraph, newGraph, assume);
+        return processPhi(newGraph, assume);
     return false; // TODO; probably call
 }
 
