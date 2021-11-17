@@ -7,7 +7,13 @@ namespace vr {
 
 // *********************** general between *************************** //
 Relations ValueRelations::_between(Handle lt, Handle rt) const {
-    return graph.getRelated(lt, allRelations)[rt];
+    Relations result = graph.getRelated(lt, allRelations)[rt];
+    if (result.any())
+        return result;
+    result = _between(lt, getInstance<llvm::ConstantInt>(rt));
+    if (result.any())
+        return result;
+    return _between(getInstance<llvm::ConstantInt>(lt), rt);
 }
 Relations ValueRelations::_between(Handle lt, V rt) const {
     HandlePtr mRt = maybeGet(rt);
@@ -387,12 +393,6 @@ std::pair<ValueRelations::BRef, bool> ValueRelations::add(V val, Handle h) {
                 graph.addRelation(h, Relations::EQ, otherH);
                 assert(valToBucket.find(val) != valToBucket.end());
                 return {valToBucket.find(val)->second, true};
-            }
-
-            for (Relations::Type type : {Relations::SLT, Relations::ULT,
-                                         Relations::SGT, Relations::UGT}) {
-                if (compare(c, type, otherC))
-                    graph.addRelation(h, type, otherH);
             }
         }
     }
