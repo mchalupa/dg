@@ -562,8 +562,8 @@ size_t limitingBorder(const ValueRelations &relations, const llvm::Value *val) {
 bool RelationsAnalyzer::findEqualBorderBucket(const ValueRelations &relations,
                                               const llvm::Value *mBorderV,
                                               const llvm::Value *comparedV) {
-    const auto *comparedI = llvm::dyn_cast<llvm::Instruction>(comparedV);
-    if (!llvm::isa<llvm::Instruction>(mBorderV) || !comparedI)
+    if (!llvm::isa<llvm::Instruction>(mBorderV) ||
+        !llvm::isa<llvm::Instruction>(comparedV))
         return false;
     if (!relations.contains(mBorderV) || !relations.contains(comparedV))
         return false;
@@ -586,14 +586,19 @@ bool RelationsAnalyzer::findEqualBorderBucket(const ValueRelations &relations,
     if (!arg)
         return false;
 
-    const auto *func = comparedI->getFunction();
+    const auto *comparedFrom = llvm::cast<llvm::Instruction>(comparedFroms[0]);
+    const auto *func = comparedFrom->getFunction();
     assert(structure.hasBorderValues(func));
     BorderValue bv = structure.getBorderValueFor(func, mBorderId);
     for (const auto &borderVal : structure.getBorderValuesFor(func)) {
         if (borderVal.from == arg && borderVal.stored == bv.stored) {
-            assert(codeGraph.getVRLocation(comparedI).join);
+            assert(codeGraph.getVRLocation(comparedFrom)
+                           .getSuccLocation(0)
+                           ->join);
             VRLocation &join = const_cast<VRLocation &>(
-                    *codeGraph.getVRLocation(comparedI).join);
+                    *codeGraph.getVRLocation(comparedFrom)
+                             .getSuccLocation(0)
+                             ->join);
             assert(join.relations.has(comparedFroms[1], Relations::PT));
             const auto &placeholder =
                     join.relations.getPointedTo(comparedFroms[1]);
