@@ -365,7 +365,8 @@ RelationsAnalyzer::Shift RelationsAnalyzer::getShift(
         assert(inst);
         assert(llvm::isa<llvm::StoreInst>(inst));
         const llvm::StoreInst *store = llvm::cast<llvm::StoreInst>(inst);
-        assert(froms.contains(store->getPointerOperand()));
+        if (!froms.contains(store->getPointerOperand()))
+            return Shift::UNKNOWN;
 
         const auto *what = store->getValueOperand();
 
@@ -418,9 +419,14 @@ bool RelationsAnalyzer::canShift(const ValueRelations &graph, V param,
         for (const auto *val : graph.getEqual(paramInst)) {
             if (const auto *arg = llvm::dyn_cast<llvm::Argument>(val)) {
                 if (arg->getType()->isIntegerTy()) {
-                    structure.addPrecondition(
-                            thisFun, arg, shift,
-                            llvm::ConstantInt::get(arg->getType(), 0));
+                    const auto *zero =
+                            llvm::ConstantInt::get(arg->getType(), 0);
+                    if (graph.are(arg, Relations::NE, zero))
+                        structure.addPrecondition(
+                                thisFun, arg, Relations::getNonStrict(shift),
+                                zero);
+                    else
+                        structure.addPrecondition(thisFun, arg, shift, zero);
                     return true;
                 }
             }
@@ -464,7 +470,8 @@ void RelationsAnalyzer::solveDifferent(ValueRelations &graph,
         }
 
         auto boundC = graph.getBound(param, Relations::getNonStrict(shift));
-        if (boundC.first && boundC.second.has(Relations::getNonStrict(shift))) {
+        if (boundC.first && boundC.second.has(Relations::getNonStrict(shift)) &&
+            !graph.are(op, Relations::getNonStrict(shift), boundC.first)) {
             int64_t intC = boundC.first->getSExtValue();
             intC += shift == Relations::SLT ? 1 : -1;
             const auto *newBound =
@@ -562,8 +569,8 @@ size_t limitingBorder(const ValueRelations &relations, const llvm::Value *val) {
 bool RelationsAnalyzer::findEqualBorderBucket(const ValueRelations &relations,
                                               const llvm::Value *mBorderV,
                                               const llvm::Value *comparedV) {
-    const auto *comparedI = llvm::dyn_cast<llvm::Instruction>(comparedV);
-    if (!llvm::isa<llvm::Instruction>(mBorderV) || !comparedI)
+    if (!llvm::isa<llvm::Instruction>(mBorderV) ||
+        !llvm::isa<llvm::Instruction>(comparedV))
         return false;
     if (!relations.contains(mBorderV) || !relations.contains(comparedV))
         return false;
@@ -586,14 +593,19 @@ bool RelationsAnalyzer::findEqualBorderBucket(const ValueRelations &relations,
     if (!arg)
         return false;
 
-    const auto *func = comparedI->getFunction();
+    const auto *comparedFrom = llvm::cast<llvm::Instruction>(comparedFroms[0]);
+    const auto *func = comparedFrom->getFunction();
     assert(structure.hasBorderValues(func));
     BorderValue bv = structure.getBorderValueFor(func, mBorderId);
     for (const auto &borderVal : structure.getBorderValuesFor(func)) {
         if (borderVal.from == arg && borderVal.stored == bv.stored) {
-            assert(codeGraph.getVRLocation(comparedI).join);
+            assert(codeGraph.getVRLocation(comparedFrom)
+                           .getSuccLocation(0)
+                           ->join);
             VRLocation &join = const_cast<VRLocation &>(
-                    *codeGraph.getVRLocation(comparedI).join);
+                    *codeGraph.getVRLocation(comparedFrom)
+                             .getSuccLocation(0)
+                             ->join);
             assert(join.relations.has(comparedFroms[1], Relations::PT));
             const auto &placeholder =
                     join.relations.getPointedTo(comparedFroms[1]);
@@ -875,7 +887,7 @@ RelationsAnalyzer::getEQICmp(const VRLocation &join) {
     std::vector<const llvm::ICmpInst *> result;
     for (const auto *loopEnd : join.loopEnds) {
         if (!loopEnd->op->isAssumeBool())
-            return {};
+            continue;
 
         const auto *assume = static_cast<VRAssumeBool *>(loopEnd->op.get());
         const auto &icmps = structure.getRelevantConditions(assume);
@@ -1039,7 +1051,7 @@ void RelationsAnalyzer::relateValues(
 
         assert(predGraph.are(pointedTo, relations, relatedH));
 
-        if (relatedH == pointedTo)
+        if (relatedH == pointedTo && !predGraph.getEqual(relatedH).empty())
             continue;
 
         for (V related : predGraph.getEqual(relatedH)) {
@@ -1392,10 +1404,31 @@ RelationsAnalyzer::getCorrespondingByContent(const ValueRelations &toRels,
         auto *mThisH = toRels.getHandle(val);
         if (!mThisH)
             continue;
-        assert(!result || result == mThisH);
+        if (result && result != mThisH)
+            return nullptr;
         result = mThisH;
     }
     return result;
+}
+
+RelationsAnalyzer::HandlePtr
+RelationsAnalyzer::getCorrespondingByFrom(const ValueRelations &toRels,
+                                          const ValueRelations &fromRels,
+                                          Handle h) {
+    const auto &froms = fromRels.getRelated(h, Relations().pf());
+    if (froms.size() != 1)
+        return nullptr;
+
+    const auto &fromFromH = froms.begin()->first;
+    const auto *toFromH =
+            getCorrespondingByContent(toRels, fromRels, fromFromH);
+    if (!toFromH)
+        return nullptr;
+
+    if (!toRels.has(*toFromH, Relations::PT))
+        return nullptr;
+
+    return &toRels.getPointedTo(*toFromH);
 }
 
 const llvm::AllocaInst *RelationsAnalyzer::getOrigin(const ValueRelations &rels,

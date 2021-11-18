@@ -114,7 +114,8 @@ class RelationsAnalyzer {
         for (unsigned i = 1; i < changeLocations.size(); ++i) {
             const ValueRelations &graph = changeLocations[i]->relations;
             HandlePtr from = getCorrespondingByContent(graph, froms);
-            assert(from);
+            if (!from)
+                return Relations();
             assert(graph.hasLoad(*from));
             Handle loaded = graph.getPointedTo(*from);
 
@@ -189,6 +190,11 @@ class RelationsAnalyzer {
                                                Handle h);
     static HandlePtr getCorrespondingByContent(const ValueRelations &toRels,
                                                const VectorSet<V> &vals);
+
+    static HandlePtr getCorrespondingByFrom(const ValueRelations &toRels,
+                                            const ValueRelations &fromRels,
+                                            Handle h);
+
     static const llvm::AllocaInst *getOrigin(const ValueRelations &rels, V val);
 };
 
