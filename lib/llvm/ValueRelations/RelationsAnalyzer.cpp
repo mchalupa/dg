@@ -588,7 +588,7 @@ bool RelationsAnalyzer::findEqualBorderBucket(const ValueRelations &relations,
 
     const auto *func = comparedI->getFunction();
     assert(structure.hasBorderValues(func));
-    const BorderValue &bv = structure.getBorderValueFor(func, mBorderId);
+    BorderValue bv = structure.getBorderValueFor(func, mBorderId);
     for (const auto &borderVal : structure.getBorderValuesFor(func)) {
         if (borderVal.from == arg && borderVal.stored == bv.stored) {
             assert(codeGraph.getVRLocation(comparedI).join);
@@ -1289,8 +1289,10 @@ bool RelationsAnalyzer::passFunction(const llvm::Function &function,
 
         bool locationChanged = location.relations.unsetChanged();
 #ifndef NDEBUG
-        if (print && cond && locationChanged) {
-            std::cerr << "after\n" << location.relations;
+        if (print && cond) {
+            std::cerr << "after\n";
+            if (locationChanged)
+                std::cerr << location.relations;
             // return false;
         }
 #endif
