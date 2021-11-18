@@ -14,6 +14,9 @@
 //#include "dg/llvm/PointerAnalysis/PointerGraph.h"
 //#include "llvm/ForkJoin/ForkJoin.h"
 #include "dg/ReadWriteGraph/RWNode.h"
+#ifdef HAVE_SVF
+#include "dg/llvm/PointerAnalysis/SVFPointerAnalysis.h"
+#endif
 #include "llvm/ReadWriteGraph/LLVMReadWriteGraphBuilder.h"
 #include "llvm/llvm-utils.h"
 
@@ -306,9 +309,25 @@ LLVMReadWriteGraphBuilder::createCall(const llvm::Instruction *Inst) {
 
     const auto &functions = getCalledFunctions(calledVal, PTA);
     if (functions.empty()) {
-        llvm::errs() << "[RWG] error: could not determine the called function "
-                        "in a call via pointer: \n"
-                     << ValInfo(CInst) << "\n";
+#ifdef HAVE_SVF
+        if (PTA->getOptions().isSVF()) {
+            errs() << "[RWG] warning: could not determine the called function "
+                      "in a call via pointer from SVF pointer analysis: \n"
+                   << ValInfo(CInst) << "\n"
+                   << "[RWG] note: trying our CallGraph instead!\n";
+
+            auto &CG = static_cast<SVFPointerAnalysis *>(PTA)
+                               ->getPreciseCallGraph();
+
+            const auto &functions = CG.getCalledFunctions(CInst);
+            if (!functions.empty())
+                return createCallToFunctions(functions, CInst);
+        }
+#endif
+
+        errs() << "[RWG] error: could not determine the called function "
+                  "in a call via pointer: \n"
+               << ValInfo(CInst) << "\n";
         return {createUnknownCall(CInst)};
     }
     return createCallToFunctions(functions, CInst);

@@ -15,6 +15,8 @@
 
 #include "dg/PointerAnalysis/Pointer.h"
 
+#include "dg/llvm/CallGraph/CallGraph.h"
+
 #include "dg/llvm/PointerAnalysis/LLVMPointerAnalysisOptions.h"
 #include "dg/llvm/PointerAnalysis/LLVMPointsToSet.h"
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
@@ -23,6 +25,7 @@
 
 namespace dg {
 
+using llvmdg::LazyLLVMCallGraph;
 using pta::Pointer;
 
 using SVF::LLVMModuleSet;
@@ -96,6 +99,7 @@ class SVFPointerAnalysis : public LLVMPointerAnalysis {
     const llvm::Module *_module{nullptr};
     SVF::SVFModule *_svfModule{nullptr};
     std::unique_ptr<SVF::PointerAnalysis> _pta{};
+    std::unique_ptr<LazyLLVMCallGraph> _cg;
 
     PointsTo &getUnknownPTSet() const {
         static PointsTo _unknownPTSet;
@@ -125,6 +129,15 @@ class SVFPointerAnalysis : public LLVMPointerAnalysis {
         PAG *pag = _pta->getPAG();
         auto pts = _pta->getPts(pag->getValueNode(val));
         return !pts.empty();
+    }
+
+    ///
+    // SVF's call graph usually lacks information about calls made through
+    // function pointers.  If that happens, use our, more precise, call graph.
+    LazyLLVMCallGraph &getPreciseCallGraph() {
+        if (!_cg)
+            _cg.reset(new LazyLLVMCallGraph(_module));
+        return *_cg;
     }
 
     ///
@@ -165,6 +178,7 @@ class SVFPointerAnalysis : public LLVMPointerAnalysis {
         _svfModule->buildSymbolTableInfo();
 
         PAGBuilder builder;
+        PAG::handleBlackHole(true);
         PAG *pag = builder.build(_svfModule);
 
         _pta.reset(new Andersen(pag));
