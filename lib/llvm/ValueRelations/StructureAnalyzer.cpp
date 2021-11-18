@@ -831,9 +831,8 @@ StructureAnalyzer::getBorderValuesFor(const llvm::Function *func) const {
     return borderValues.find(func)->second;
 }
 
-const BorderValue &
-StructureAnalyzer::getBorderValueFor(const llvm::Function *func,
-                                     size_t id) const {
+BorderValue StructureAnalyzer::getBorderValueFor(const llvm::Function *func,
+                                                 size_t id) const {
     for (const auto &bv : getBorderValuesFor(func)) {
         if (bv.id == id)
             return bv;
