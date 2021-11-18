@@ -464,7 +464,8 @@ void RelationsAnalyzer::solveDifferent(ValueRelations &graph,
         }
 
         auto boundC = graph.getBound(param, Relations::getNonStrict(shift));
-        if (boundC.first && boundC.second.has(Relations::getNonStrict(shift))) {
+        if (boundC.first && boundC.second.has(Relations::getNonStrict(shift)) &&
+            !graph.are(op, Relations::getNonStrict(shift), boundC.first)) {
             int64_t intC = boundC.first->getSExtValue();
             intC += shift == Relations::SLT ? 1 : -1;
             const auto *newBound =
