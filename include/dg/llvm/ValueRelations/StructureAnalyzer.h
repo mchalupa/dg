@@ -148,8 +148,7 @@ class StructureAnalyzer {
     const std::vector<BorderValue> &
     getBorderValuesFor(const llvm::Function *func) const;
 
-    const BorderValue &getBorderValueFor(const llvm::Function *func,
-                                         size_t id) const;
+    BorderValue getBorderValueFor(const llvm::Function *func, size_t id) const;
 
 #ifndef NDEBUG
     void dumpBorderValues(std::ostream &out = std::cerr) const;
