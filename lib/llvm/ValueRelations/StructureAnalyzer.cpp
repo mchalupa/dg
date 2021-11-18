@@ -689,7 +689,7 @@ void StructureAnalyzer::initializeCallRelations() {
             // set formal parameters equal to real
             unsigned argCount = 0;
             for (const llvm::Argument &formalArg : function.args()) {
-                if (argCount > call->getNumArgOperands())
+                if (argCount >= call->getNumArgOperands())
                     break;
                 const llvm::Value *realArg = call->getArgOperand(argCount);
 

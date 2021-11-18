@@ -331,7 +331,7 @@ struct ValueRelations {
     }
     template <typename X, typename Y>
     bool are(const X &lt, Relations rels, const Y &rt) const {
-        return _between(lt, rt) == rels;
+        return (_between(lt, rt) & rels) == rels;
     }
     template <typename X, typename Y>
     bool are(const X &lt, Relations::Type rel, const Y &rt) const {
