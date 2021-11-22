@@ -503,15 +503,22 @@ class ModuleAnnotator {
                 undefFunsBehaviorToStr(
                         options.dgOptions.DDAOptions.undefinedFunsBehavior) +
                 "'\n" + ";   * pointer analysis: ";
-        if (options.dgOptions.PTAOptions.analysisType ==
-            LLVMPointerAnalysisOptions::AnalysisType::fi)
+
+        using AnalysisType = LLVMPointerAnalysisOptions::AnalysisType;
+        switch (options.dgOptions.PTAOptions.analysisType) {
+        case AnalysisType::fi:
             module_comment += "flow-insensitive\n";
-        else if (options.dgOptions.PTAOptions.analysisType ==
-                 LLVMPointerAnalysisOptions::AnalysisType::fs)
+            break;
+        case AnalysisType::fs:
             module_comment += "flow-sensitive\n";
-        else if (options.dgOptions.PTAOptions.analysisType ==
-                 LLVMPointerAnalysisOptions::AnalysisType::inv)
+            break;
+        case AnalysisType::inv:
             module_comment += "flow-sensitive with invalidate\n";
+            break;
+        case AnalysisType::svf:
+            module_comment += "SVF\n";
+            break;
+        }
 
         module_comment += ";   * PTA field sensitivity: ";
         if (options.dgOptions.PTAOptions.fieldSensitivity == Offset::UNKNOWN)
