@@ -284,8 +284,11 @@ class LLVMDGAssemblyAnnotationWriter : public llvm::AssemblyAnnotationWriter {
                 break;
         }
 
-        if (!node)
+        if (!node) {
+            if (opts & ANNOTATE_SLICE)
+                os << "  ; x ";
             return;
+        }
 
         emitNodeAnnotations(node, os);
     }
