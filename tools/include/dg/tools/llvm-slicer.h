@@ -481,7 +481,7 @@ class ModuleAnnotator {
     void annotate(const std::set<LLVMNode *> *criteria = nullptr) {
         // compose name
         std::string fl(options.inputFile);
-        fl.replace(fl.end() - 3, fl.end(), "-debug.ll");
+        replace_suffix(fl, "-debug.ll");
 
         // open stream to write to
         std::ofstream ofs(fl);
