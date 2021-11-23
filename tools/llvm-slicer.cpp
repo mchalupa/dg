@@ -212,7 +212,12 @@ int main(int argc, char *argv[]) {
     /// ---------------
     // slice the code
     /// ---------------
-
+    if (cutoff_diverging) {
+        if (options.dgOptions.threads) {
+            errs() << "[llvm-slicer] threads are enabled, not cutting off diverging\n";
+            cutoff_diverging = false;
+        }
+    }
     if (cutoff_diverging) {
         DBG(llvm - slicer, "Searching for slicing criteria values");
         auto csvalues =
