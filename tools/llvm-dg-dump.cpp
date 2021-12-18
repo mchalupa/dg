@@ -189,13 +189,16 @@ int main(int argc, char *argv[]) {
 #endif
         }
     }
+    const char *only_func = nullptr;
+    if (!dump_func_only.empty())
+        only_func = dump_func_only.c_str();
 
     if (bb_only) {
         LLVMDGDumpBlocks dumper(dg.get(), opts);
-        dumper.dump(nullptr, dump_func_only.c_str());
+        dumper.dump(nullptr, only_func);
     } else {
         LLVMDG2Dot dumper(dg.get(), opts);
-        dumper.dump(nullptr, dump_func_only.c_str());
+        dumper.dump(nullptr, only_func);
     }
 
     return 0;
