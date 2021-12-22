@@ -21,8 +21,7 @@ jobs:
       - name: Checkout SVF
         uses: actions/checkout@v2
         with:
-          # some ref after SVF-2.3 release that has fixed Z3 CMake search
-          ref: 4d05f4b091f9cd23fe7dedb7d6ea8e0042c4818f
+          ref: SVF-2.4
           repository: SVF-tools/SVF
           path: svf
 
@@ -30,22 +29,27 @@ jobs:
         uses: actions/checkout@v2
         with:
           # ref corresponding to the SVF ref above
-          ref: 9c9d75e957a28d0d45c6194ebbc5823ff129d0bb
+          ref: 2338ede904c1f46293b64ccf32feb09b3904401f
           repository: SVF-tools/Test-Suite
           path: svf/Test-Suite
+
+      - name: '[LLVM 13] Add repositories'
+        run: |
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-13 main"
 
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install ccache cmake ninja-build clang-12 llvm-12-dev \
+          sudo apt install ccache cmake ninja-build clang-13 llvm-13-dev \
                            libz3-dev
 
       - name: Set environment
         id: env
         run: |
           if [[ "${{matrix.compiler}}" = "clang" ]]; then
-            echo "CC=clang-12" >> $GITHUB_ENV
-            echo "CXX=clang++-12" >> $GITHUB_ENV
+            echo "CC=clang-13" >> $GITHUB_ENV
+            echo "CXX=clang++-13" >> $GITHUB_ENV
 
             # force coloured output
             echo "CFLAGS=$CFLAGS -fcolor-diagnostics" >> $GITHUB_ENV
@@ -87,11 +91,11 @@ jobs:
           cmake -Ssvf \
                 -Bsvf/Release-build \
                 -GNinja \
-                -DLLVM_DIR:PATH="$(llvm-config-12 --cmakedir)"
+                -DLLVM_DIR:PATH="$(llvm-config-13 --cmakedir)"
 
           cmake --build svf/Release-build
           (cd svf/Release-build && \
-           PATH="$(llvm-config-12 --bindir):$PATH" \
+           PATH="$(llvm-config-13 --bindir):$PATH" \
            ctest --progress --output-on-failure)
 
       - name: '[Dynamic LLVM] Configure CMake project'
@@ -100,7 +104,7 @@ jobs:
                 -B_build \
                 -GNinja \
                 -DUSE_SANITIZERS:BOOL=ON \
-                -DLLVM_DIR:PATH="$(llvm-config-12 --cmakedir)" \
+                -DLLVM_DIR:PATH="$(llvm-config-13 --cmakedir)" \
                 -DSVF_DIR:PATH="$GITHUB_WORKSPACE/svf/Release-build"
 
       - name: '[Dynamic LLVM] Build'
