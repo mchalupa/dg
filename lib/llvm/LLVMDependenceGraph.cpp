@@ -28,6 +28,9 @@
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/llvm/LLVMNode.h"
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
+#ifdef HAVE_SVF
+#include "dg/llvm/PointerAnalysis/SVFPointerAnalysis.h"
+#endif
 // !FIXME
 #include "../lib/llvm/ControlDependence/InterproceduralCD.h"
 #include "../lib/llvm/ControlDependence/NTSCD.h"
@@ -393,6 +396,33 @@ static bool isMemAllocationFunc(const llvm::Function *func) {
            name.equals("realloc");
 }
 
+void LLVMDependenceGraph::handleCalledFunction(const llvm::CallInst *CInst,
+                                               const llvm::Function *F,
+                                               LLVMNode *node) {
+    if (F->empty() || !llvmutils::callIsCompatible(F, CInst)) {
+        if (threads && F && F->getName() == "pthread_create") {
+            auto possibleFunctions =
+                    getCalledFunctions(CInst->getArgOperand(2), PTA);
+            for (auto &function : possibleFunctions) {
+                if (!function->empty()) {
+                    LLVMDependenceGraph *subg = buildSubgraph(
+                            node, const_cast<llvm::Function *>(function),
+                            true /*this is fork*/);
+                    node->addSubgraph(subg);
+                }
+            }
+        } else {
+            // incompatible prototypes or the function
+            // is only declaration
+            return;
+        }
+    } else {
+        LLVMDependenceGraph *subg =
+                buildSubgraph(node, const_cast<llvm::Function *>(F));
+        node->addSubgraph(subg);
+    }
+}
+
 void LLVMDependenceGraph::handleInstruction(llvm::Value *val, LLVMNode *node,
                                             LLVMNode *prevNode) {
     using namespace llvm;
@@ -413,34 +443,28 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val, LLVMNode *node,
             if (pts.empty()) {
                 llvmutils::printerr("Had no PTA node", strippedValue);
             }
-            for (const LLVMPointer &ptr : pts) {
-                // vararg may introduce imprecision here, so we
-                // must check that it is really pointer to a function
-                Function *F = dyn_cast<Function>(ptr.value);
-                if (!F)
-                    continue;
 
-                if (F->empty() || !llvmutils::callIsCompatible(F, CInst)) {
-                    if (threads && F && F->getName() == "pthread_create") {
-                        auto possibleFunctions = getCalledFunctions(
-                                CInst->getArgOperand(2), PTA);
-                        for (auto &function : possibleFunctions) {
-                            if (!function->empty()) {
-                                LLVMDependenceGraph *subg = buildSubgraph(
-                                        node,
-                                        const_cast<llvm::Function *>(function),
-                                        true /*this is fork*/);
-                                node->addSubgraph(subg);
-                            }
-                        }
-                    } else {
-                        // incompatible prototypes or the function
-                        // is only declaration
+            if (PTA->getOptions().isSVF() && pts.size() == 1 &&
+                pts.hasUnknown()) {
+#ifdef HAVE_SVF
+                auto &CG = static_cast<SVFPointerAnalysis *>(PTA)
+                                   ->getPreciseCallGraph();
+
+                const auto &functions = CG.getCalledFunctions(CInst);
+                for (const auto *F : functions)
+                    handleCalledFunction(CInst, F, node);
+#else
+                assert(false && "trying to use SVF on a non-SVF build");
+#endif
+            } else {
+                for (const LLVMPointer &ptr : pts) {
+                    // vararg may introduce imprecision here, so we
+                    // must check that it is really pointer to a function
+                    Function *F = dyn_cast<Function>(ptr.value);
+                    if (!F)
                         continue;
-                    }
-                } else {
-                    LLVMDependenceGraph *subg = buildSubgraph(node, F);
-                    node->addSubgraph(subg);
+
+                    handleCalledFunction(CInst, F, node);
                 }
             }
         }

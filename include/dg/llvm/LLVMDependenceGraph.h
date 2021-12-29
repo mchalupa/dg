@@ -180,6 +180,9 @@ class LLVMDependenceGraph : public DependenceGraph<LLVMNode> {
     void handleInstruction(llvm::Value *val, LLVMNode *node,
                            LLVMNode *prevNode);
 
+    void handleCalledFunction(const llvm::CallInst *CInst,
+                              const llvm::Function *F, LLVMNode *node);
+
     // convert llvm basic block to our basic block
     // That includes creating all the nodes and adding them
     // to this graph and creating the basic block and
