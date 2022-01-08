@@ -1,6 +1,3 @@
-include_directories(${CMAKE_SOURCE_DIR}/lib)
-include_directories(${CMAKE_SOURCE_DIR}/include)
-
 add_library(dganalysis SHARED
 	Offset.cpp
         Debug.cpp
