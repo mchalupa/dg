@@ -36,7 +36,7 @@
 #include "dg/tools/llvm-slicer-opts.h"
 #include "dg/tools/llvm-slicer-utils.h"
 
-#include "dg/tools/TimeMeasure.h"
+#include "dg/util/TimeMeasure.h"
 
 using namespace dg;
 using namespace dg::debug;

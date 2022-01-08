@@ -28,9 +28,10 @@
 #include "dg/PointerAnalysis/Pointer.h"
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 
-#include "dg/tools/TimeMeasure.h"
 #include "dg/tools/llvm-slicer-opts.h"
 #include "dg/tools/llvm-slicer-utils.h"
+
+#include "dg/util/TimeMeasure.h"
 
 using namespace dg;
 using namespace dg::pta;

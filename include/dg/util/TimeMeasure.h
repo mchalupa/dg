@@ -1,5 +1,5 @@
-#ifndef DG_UTILS_H_
-#define DG_UTILS_H_
+#ifndef DG_TIME_UTILS_H_
+#define DG_TIME_UTILS_H_
 
 #include <chrono>
 #include <iostream>
@@ -49,4 +49,4 @@ class TimeMeasure {
 } // namespace debug
 } // namespace dg
 
-#endif // DG_UTILS_H_
+#endif // DG_TIME_UTILS_H_
