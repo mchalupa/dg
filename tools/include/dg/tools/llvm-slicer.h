@@ -21,10 +21,10 @@
 #include "dg/llvm/LLVMDG2Dot.h"
 #include "dg/llvm/LLVMDGAssemblyAnnotationWriter.h"
 
+#include "dg/util/TimeMeasure.h"
+
 #include "llvm-slicer-opts.h"
 #include "llvm-slicer-utils.h"
-
-#include "TimeMeasure.h"
 
 /// --------------------------------------------------------------------
 //   - Slicer class -

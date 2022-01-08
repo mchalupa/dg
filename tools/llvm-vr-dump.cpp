@@ -31,7 +31,7 @@
 #include "dg/llvm/ValueRelations/StructureAnalyzer.h"
 #include "dg/llvm/ValueRelations/getValName.h"
 
-#include "dg/tools/TimeMeasure.h"
+#include "dg/util/TimeMeasure.h"
 
 using namespace dg::vr;
 using llvm::errs;

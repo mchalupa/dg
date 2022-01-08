@@ -2,8 +2,8 @@
 #include <string>
 #include <vector>
 
-#include "../tools/include/dg/tools/TimeMeasure.h"
 #include "dg/PointerAnalysis/PointsToSet.h"
+#include "dg/util/TimeMeasure.h"
 
 using namespace dg::pta;
 
