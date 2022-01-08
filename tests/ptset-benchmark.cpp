@@ -17,12 +17,12 @@ std::uniform_int_distribution<uint64_t> distribution(0,
         dg::debug::TimeMeasure tm;                                             \
         tm.start();                                                            \
         for (int i = 0; i < times; ++i)                                        \
-            (func)<PointsToSetT>();                                            \
+            func<PointsToSetT>();                                              \
         tm.stop();                                                             \
         tm.report(" -- PointsToSet bitvector took");                           \
         tm.start();                                                            \
         for (int i = 0; i < times; ++i)                                        \
-            (func)<SimplePointsToSet>();                                       \
+            func<SimplePointsToSet>();                                         \
         tm.stop();                                                             \
         tm.report(" -- PointsToSet std::set took");                            \
     } while (0);
