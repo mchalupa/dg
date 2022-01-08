@@ -230,6 +230,9 @@ include(GNUInstallDirs)
 message(STATUS "CMAKE_INSTALL_LIBDIR: \"${CMAKE_INSTALL_LIBDIR}\"")
 message(STATUS "CMAKE_INSTALL_INCLUDEDIR: \"${CMAKE_INSTALL_INCLUDEDIR}\"")
 
+include_directories(include)
+include_directories(lib)
+
 add_subdirectory(lib)
 add_subdirectory(tools)
 add_subdirectory(tests EXCLUDE_FROM_ALL)
