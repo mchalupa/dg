@@ -58,10 +58,9 @@ jobs:
           sudo apt install ccache cmake ninja-build clang-${{matrix.llvm}} \
                            llvm-${{matrix.llvm}}-dev
 
-          # FIXME: Remove when https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=996551
-          # is resolved.
+          # FIXME: Remove when mlir dependency is removed from llvm-13-dev.
           if [[ "${{matrix.llvm}}" = "13" ]]; then
-            sudo apt install libomp-13-dev
+            sudo apt install libmlir-13-dev
           fi
 
       - name: Set environment
