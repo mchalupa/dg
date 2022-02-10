@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
-from os import listdir
+from os import listdir, access, X_OK
 from subprocess import DEVNULL, PIPE, Popen
 
 failed = False
 
-for f in filter(lambda x: x.startswith('llvm'), listdir()):
+def is_exe(f):
+    return access(f, X_OK)
+
+for f in filter(lambda x: x.startswith('llvm') and is_exe(x), listdir()):
     print(f, end='')
     p = Popen(['./' + f, '--version'], stdout=DEVNULL, stderr=PIPE)
     out = p.communicate()[1].decode()
