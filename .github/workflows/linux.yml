@@ -21,7 +21,8 @@ jobs:
           - {os: ubuntu-20.04, llvm: 11, compiler: gcc}
           - {os: ubuntu-20.04, llvm: 12, compiler: gcc}
           - {os: ubuntu-22.04, llvm: 13, compiler: gcc}
-          - {os: ubuntu-22.04, llvm: 13, compiler: gcc, type: Debug}
+          - {os: ubuntu-22.04, llvm: 14, compiler: gcc}
+          - {os: ubuntu-22.04, llvm: 14, compiler: gcc, type: Debug}
 
           # Linux with Clang
           - {os: ubuntu-18.04, llvm: '3.9', compiler: clang}
@@ -35,7 +36,8 @@ jobs:
           - {os: ubuntu-20.04, llvm: 11, compiler: clang}
           - {os: ubuntu-20.04, llvm: 12, compiler: clang}
           - {os: ubuntu-22.04, llvm: 13, compiler: clang}
-          - {os: ubuntu-22.04, llvm: 13, compiler: clang, type: Debug}
+          - {os: ubuntu-22.04, llvm: 14, compiler: clang}
+          - {os: ubuntu-22.04, llvm: 14, compiler: clang, type: Debug}
 
     runs-on: ${{matrix.os}}
     env:
