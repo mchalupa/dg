@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.1)
-project(dg CXX)
+
+# FIXME: Unfortunately, C is (at least temporarily) required due to a bug
+# in LLVM 14.  See https://github.com/llvm/llvm-project/issues/53950.
+project(dg LANGUAGES C CXX)
 
 include(CTest)
 
