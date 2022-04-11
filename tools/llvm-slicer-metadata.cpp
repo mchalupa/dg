@@ -6,6 +6,8 @@
 
 #include "dg/tools/llvm-slicer-utils.h"
 
+#include <map>
+
 using MapTy = std::map<const llvm::Value *, CVariableDecl>;
 
 // create the mapping from LLVM values to C variable names
