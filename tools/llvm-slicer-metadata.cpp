@@ -1,3 +1,5 @@
+#include <map>
+
 #include <llvm/IR/DebugInfoMetadata.h>
 #include <llvm/IR/InstIterator.h>
 #include <llvm/IR/Instructions.h>
