@@ -28,6 +28,7 @@ if (LLVM_DG)
     endif()
 
 	add_library(dgllvmslicer SHARED
+		    llvm-slicer-metadata.cpp
 		    llvm-slicer-opts.cpp
 		    llvm-slicer-utils.cpp
 		    llvm-slicer-preprocess.cpp
@@ -61,7 +62,7 @@ if (HAVE_SVF)
                                       PRIVATE ${llvm_transformutils})
 endif (HAVE_SVF)
 
-	add_executable(llvm-cda-dump llvm-cda-dump.cpp llvm-slicer-metadata.cpp)
+	add_executable(llvm-cda-dump llvm-cda-dump.cpp)
 	target_link_libraries(llvm-cda-dump PRIVATE dgllvmslicer
                                             PRIVATE dgllvmcda
 					    PRIVATE ${llvm_irreader}
@@ -84,7 +85,7 @@ endif (HAVE_SVF)
 					    PRIVATE ${llvm_irreader}
 					    )
 
-	add_executable(llvm-pta-dump llvm-pta-dump.cpp llvm-slicer-metadata.cpp)
+	add_executable(llvm-pta-dump llvm-pta-dump.cpp)
 	target_link_libraries(llvm-pta-dump PRIVATE dgllvmpta
                                             PRIVATE dgllvmslicer)
 if (HAVE_SVF)
@@ -114,7 +115,7 @@ endif (HAVE_SVF)
 
 
 
-	add_executable(llvm-dda-dump llvm-dda-dump.cpp llvm-slicer-metadata.cpp)
+	add_executable(llvm-dda-dump llvm-dda-dump.cpp)
 	target_link_libraries(llvm-dda-dump PRIVATE dgllvmdda)
 	target_link_libraries(llvm-dda-dump
                                 PRIVATE dgllvmslicer
