@@ -27,6 +27,14 @@ if (LLVM_DG)
                                            PRIVATE ${llvm_transformutils})
     endif()
 
+    add_executable(llvm-dg-deps llvm-dg-deps.cpp llvm-slicer-metadata.cpp)
+    target_link_libraries(llvm-dg-deps PRIVATE dgllvmslicer
+                                       PRIVATE ${llvm_irreader})
+    if(HAVE_SVF)
+        target_link_libraries(llvm-dg-deps PRIVATE ${SVF_LIBS}
+                                           PRIVATE ${llvm_transformutils})
+    endif()
+
 	add_library(dgllvmslicer SHARED
 		    llvm-slicer-opts.cpp
 		    llvm-slicer-utils.cpp
