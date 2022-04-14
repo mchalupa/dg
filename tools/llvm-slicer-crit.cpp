@@ -1090,7 +1090,8 @@ std::vector<const llvm::Value *>
 getSlicingCriteriaValues(llvm::Module &M, const std::string &slicingCriteria,
                          const std::string &legacySlicingCriteria,
                          const std::string &legacySecondaryCriteria,
-                         bool criteria_are_next_instr) {
+                         bool criteria_are_next_instr,
+                         LLVMPointerAnalysis *pta) {
     std::string criteria = slicingCriteria;
     if (legacySlicingCriteria != "") {
         if (slicingCriteria != "")
@@ -1121,7 +1122,7 @@ getSlicingCriteriaValues(llvm::Module &M, const std::string &slicingCriteria,
     std::vector<const llvm::Value *> ret;
     auto C = getSlicingCriteriaInstructions(
             M, criteria, criteria_are_next_instr,
-            /*pta = */ nullptr, /* constructed only */ false);
+            /*pta = */ pta, /* constructed only */ false);
     for (auto &critset : C) {
         ret.insert(ret.end(), critset.primary.begin(), critset.primary.end());
         ret.insert(ret.end(), critset.secondary.begin(),

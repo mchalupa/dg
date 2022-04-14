@@ -49,7 +49,8 @@ std::vector<const llvm::Value *>
 getSlicingCriteriaValues(llvm::Module &M, const std::string &slicingCriteria,
                          const std::string &legacyslicingCriteria,
                          const std::string &legacySecondaryCriteria,
-                         bool criteria_are_next_instr = false);
+                         bool criteria_are_next_instr = false,
+                         dg::LLVMPointerAnalysis *pta = nullptr);
 
 bool getSlicingCriteriaNodes(dg::LLVMDependenceGraph &dg,
                              const std::string &slicingCriteria,
