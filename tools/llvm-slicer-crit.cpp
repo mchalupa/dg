@@ -37,14 +37,14 @@ static inline bool isNumber(const std::string &s) {
     return true;
 }
 
-static inline bool isTheVar(const llvm::Value *val, const std::string &var) {
+static inline bool mayBeTheVar(const llvm::Value *val, const std::string &var) {
     auto name = valuesToVariables.find(val);
-    if (name != valuesToVariables.end()) {
-        if (name->second == var) {
-            return true;
-        }
+    if (name != valuesToVariables.end() && name->second != var) {
+        return false;
     }
-    return false;
+    // either the var matches or we do not know the var,
+    // which we must take as a match
+    return true;
 }
 
 static bool usesTheVariable(const llvm::Instruction &I, const std::string &var,
@@ -58,12 +58,12 @@ static bool usesTheVariable(const llvm::Instruction &I, const std::string &var,
         using namespace llvm;
         if (auto *S = dyn_cast<StoreInst>(&I)) {
             auto *A = S->getPointerOperand()->stripPointerCasts();
-            if (isa<AllocaInst>(A) && !isTheVar(A, var)) {
+            if (isa<AllocaInst>(A) && !mayBeTheVar(A, var)) {
                 return false;
             }
         } else if (auto *L = dyn_cast<LoadInst>(&I)) {
             auto *A = L->getPointerOperand()->stripPointerCasts();
-            if (isa<AllocaInst>(A) && !isTheVar(A, var)) {
+            if (isa<AllocaInst>(A) && !mayBeTheVar(A, var)) {
                 return false;
             }
         }
@@ -84,7 +84,7 @@ static bool usesTheVariable(const llvm::Instruction &I, const std::string &var,
             !llvm::isa<llvm::GlobalVariable>(region.pointer.value)) {
             continue;
         }
-        if (isTheVar(region.pointer.value, var)) {
+        if (mayBeTheVar(region.pointer.value, var)) {
             return true;
         }
     }
