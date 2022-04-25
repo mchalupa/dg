@@ -351,14 +351,15 @@ RWNode *LLVMReadWriteGraphBuilder::createCallToUndefinedFunction(
     abort();
 }
 
-RWNode *LLVMReadWriteGraphBuilder::createPthreadCreateCalls(const llvm::CallInst
-*CInst) { using namespace llvm;
+RWNode *LLVMReadWriteGraphBuilder::createPthreadCreateCalls(
+        const llvm::CallInst *CInst) {
+    using namespace llvm;
 
     RWNode *rootNode = &create(RWNodeType::FORK);
     threadCreateCalls.emplace(CInst, rootNode);
 
     Value *calledValue = CInst->getArgOperand(2);
-    const auto& functions = getCalledFunctions(calledValue, PTA);
+    const auto &functions = getCalledFunctions(calledValue, PTA);
 
     for (const Function *function : functions) {
         if (function->isDeclaration()) {
@@ -371,9 +372,8 @@ RWNode *LLVMReadWriteGraphBuilder::createPthreadCreateCalls(const llvm::CallInst
     return rootNode;
 }
 
-RWNode *LLVMReadWriteGraphBuilder::createPthreadJoinCall(const llvm::CallInst
-*CInst)
-{
+RWNode *
+LLVMReadWriteGraphBuilder::createPthreadJoinCall(const llvm::CallInst *CInst) {
     // TODO later change this to create join node and set data correctly
     // we need just to create one node;
     // undefined call is overapproximation, so its ok
@@ -382,9 +382,8 @@ RWNode *LLVMReadWriteGraphBuilder::createPthreadJoinCall(const llvm::CallInst
     return node;
 }
 
-RWNode *LLVMReadWriteGraphBuilder::createPthreadExitCall(const llvm::CallInst
-*CInst)
-{
+RWNode *
+LLVMReadWriteGraphBuilder::createPthreadExitCall(const llvm::CallInst *CInst) {
     return createReturn(CInst);
 }
 
