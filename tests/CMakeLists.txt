@@ -19,7 +19,7 @@ add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} ${CTEST_OPTS}
 # --------------------------------------------------
 
 # version of bundled Catch2
-set(CATCH_VERSION 2.13.7)
+set(CATCH_VERSION 2.13.9)
 
 # Catch2 main
 add_library(catch-main OBJECT catch-main.cpp)
