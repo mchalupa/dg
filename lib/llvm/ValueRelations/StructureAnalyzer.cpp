@@ -1,5 +1,7 @@
 #include "dg/llvm/ValueRelations/StructureAnalyzer.h"
 
+#include "llvm/llvm-utils.h"
+
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/IntrinsicInst.h>
@@ -689,7 +691,7 @@ void StructureAnalyzer::initializeCallRelations() {
             // set formal parameters equal to real
             unsigned argCount = 0;
             for (const llvm::Argument &formalArg : function.args()) {
-                if (argCount >= call->getNumArgOperands())
+                if (argCount >= llvmutils::getNumArgOperands(call))
                     break;
                 const llvm::Value *realArg = call->getArgOperand(argCount);
 

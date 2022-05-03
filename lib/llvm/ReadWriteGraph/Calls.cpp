@@ -111,12 +111,10 @@ LLVMReadWriteGraphBuilder::createUnknownCall(const llvm::CallInst *CInst) {
 
     // every pointer we pass into the undefined call may be defined
     // in the function
-    for (unsigned int i = 0; i < CInst->getNumArgOperands(); ++i) {
-        const Value *llvmOp = CInst->getArgOperand(i);
-
+    for (const auto &arg : llvmutils::args(CInst)) {
         // constants cannot be redefined except for global variables
         // (that are constant, but may point to non constant memory
-        const Value *strippedValue = llvmOp->stripPointerCasts();
+        const Value *strippedValue = arg->stripPointerCasts();
         if (isa<Constant>(strippedValue)) {
             const GlobalVariable *GV = dyn_cast<GlobalVariable>(strippedValue);
             // if the constant is not global variable,
@@ -125,7 +123,7 @@ LLVMReadWriteGraphBuilder::createUnknownCall(const llvm::CallInst *CInst) {
                 continue;
         }
 
-        auto pts = PTA->getLLVMPointsToChecked(llvmOp);
+        auto pts = PTA->getLLVMPointsToChecked(arg);
         // if we do not have a pts, this is not pointer
         // relevant instruction. We must do it this way
         // instead of type checking, due to the inttoptr.
@@ -275,7 +273,7 @@ RWNode *LLVMReadWriteGraphBuilder::funcFromModel(const FunctionModel *model,
                                                  const llvm::CallInst *CInst) {
     RWNode *node = &create(RWNodeType::GENERIC);
 
-    for (unsigned int i = 0; i < CInst->getNumArgOperands(); ++i) {
+    for (unsigned int i = 0; i < llvmutils::getNumArgOperands(CInst); ++i) {
         if (!model->handles(i))
             continue;
 

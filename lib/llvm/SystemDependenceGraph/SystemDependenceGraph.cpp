@@ -1,6 +1,8 @@
 #include "dg/llvm/SystemDependenceGraph/SystemDependenceGraph.h"
 #include "dg/util/debug.h"
 
+#include "llvm/llvm-utils.h"
+
 namespace dg {
 namespace llvmdg {
 
@@ -49,9 +51,8 @@ struct SDGBuilder {
 
         // create actual parameters
         auto &params = node.getParameters();
-        for (unsigned i = 0; i < CI->getNumArgOperands(); ++i) {
-            auto *A = CI->getArgOperand(i);
-            llvm::errs() << "Act: " << *A << "\n";
+        for (const auto &arg : llvmutils::args(CI)) {
+            llvm::errs() << "Act: " << *arg << "\n";
             params.createParameter();
         }
         return node;

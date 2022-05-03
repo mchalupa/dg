@@ -135,14 +135,20 @@ callIsCompatible(const llvm::Function *F, const llvm::CallInst *CI,
                  CallCompatibility policy = CallCompatibility::LOOSE) {
     using namespace llvm;
 
+#if LLVM_VERSION_MAJOR >= 8
+    auto max_idx = CI->arg_size();
+#else
+    auto max_idx = CI->getNumArgOperands();
+#endif
+
     if (policy != CallCompatibility::MATCHING_ARGS) {
         if (F->isVarArg()) {
-            if (F->arg_size() > CI->getNumArgOperands()) {
+            if (F->arg_size() > max_idx) {
                 return false;
             }
-        } else if (F->arg_size() != CI->getNumArgOperands()) {
+        } else if (F->arg_size() != max_idx) {
             if (policy == CallCompatibility::STRICT ||
-                F->arg_size() > CI->getNumArgOperands()) {
+                F->arg_size() > max_idx) {
                 // too few arguments
                 return false;
             }
@@ -159,7 +165,6 @@ callIsCompatible(const llvm::Function *F, const llvm::CallInst *CI,
     }
 
     size_t idx = 0;
-    auto max_idx = CI->getNumArgOperands();
     for (auto A = F->arg_begin(), E = F->arg_end(); idx < max_idx && A != E;
          ++A, ++idx) {
         Type *CTy = CI->getArgOperand(idx)->getType();
