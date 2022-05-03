@@ -30,6 +30,8 @@
 
 #include "dg/util/TimeMeasure.h"
 
+#include "llvm/llvm-utils.h"
+
 using namespace dg;
 using namespace dg::pta;
 using dg::debug::TimeMeasure;
@@ -247,8 +249,10 @@ static void evalPSNode(DGLLVMPointerAnalysis *pta, PSNode *node) {
 
     const llvm::Function *called = llvm::cast<llvm::Function>(v);
     const llvm::StringRef &fun = called->getName();
-    if (call->getNumArgOperands() != 2)
+
+    if (llvmutils::getNumArgOperands(call) != 2)
         return;
+
     if (!test_checkfunc(fun))
         return;
 

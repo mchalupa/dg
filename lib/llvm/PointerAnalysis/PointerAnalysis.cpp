@@ -73,9 +73,9 @@ LLVMPointerAnalysis::getAccessedMemory(const llvm::Instruction *I) {
 
         // check which operands are pointers and get the information for them
         bool hasUnknown = false;
-        for (unsigned i = 0; i < CI->getNumArgOperands(); ++i) {
-            if (hasPointsTo(CI->getArgOperand(i))) {
-                auto tmp = getLLVMPointsToChecked(CI->getArgOperand(i));
+        for (const auto &arg : llvmutils::args(CI)) {
+            if (hasPointsTo(arg)) {
+                auto tmp = getLLVMPointsToChecked(arg);
                 hasUnknown |= tmp.first;
                 // translate to regions
                 for (const auto &ptr : tmp.second) {

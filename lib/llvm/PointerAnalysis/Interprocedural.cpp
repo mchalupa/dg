@@ -12,12 +12,14 @@
 
 #include "dg/llvm/PointerAnalysis/PointerGraph.h"
 
+#include "llvm/llvm-utils.h"
+
 namespace dg {
 namespace pta {
 
 void LLVMPointerGraphBuilder::addArgumentOperands(const llvm::CallInst *CI,
                                                   PSNode *arg, unsigned idx) {
-    assert(idx < CI->getNumArgOperands());
+    assert(idx < llvmutils::getNumArgOperands(CI));
     PSNode *op = tryGetOperand(CI->getArgOperand(idx));
     if (op && !arg->hasOperand(op)) {
         // NOTE: do not add an operand multiple-times
@@ -29,9 +31,8 @@ void LLVMPointerGraphBuilder::addArgumentOperands(const llvm::CallInst *CI,
 
 void LLVMPointerGraphBuilder::addArgumentOperands(const llvm::CallInst &CI,
                                                   PSNode &node) {
-    auto sentinel = CI.getNumArgOperands();
-    for (unsigned i = 0; i < sentinel; ++i) {
-        PSNode *operand = tryGetOperand(CI.getArgOperand(i));
+    for (const auto &arg : llvmutils::args(CI)) {
+        PSNode *operand = tryGetOperand(arg);
         if (operand && !node.hasOperand(operand)) {
             node.addOperand(operand);
         }
@@ -75,7 +76,8 @@ void LLVMPointerGraphBuilder::addArgumentsOperands(const llvm::Function *F,
 
 void LLVMPointerGraphBuilder::addVariadicArgumentOperands(
         const llvm::Function *F, const llvm::CallInst *CI, PSNode *arg) {
-    for (unsigned idx = F->arg_size() - 1; idx < CI->getNumArgOperands(); ++idx)
+    for (unsigned idx = F->arg_size() - 1;
+         idx < llvmutils::getNumArgOperands(CI); ++idx)
         addArgumentOperands(CI, arg, idx);
 }
 

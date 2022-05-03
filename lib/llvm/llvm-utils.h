@@ -1,6 +1,7 @@
 #ifndef DG_LLVM_UTILS_H_
 #define DG_LLVM_UTILS_H_
 
+#include <llvm/ADT/iterator_range.h>
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instructions.h>
@@ -14,6 +15,39 @@ namespace dg {
 namespace llvmutils {
 
 using namespace llvm;
+
+/* ----------------------------------------------
+ * -- COMPAT
+ * ---------------------------------------------- */
+
+// FIXME: Remove this when LLVM 8 is the minimal version for DG!
+inline iterator_range<User::op_iterator> args(CallInst *CI) {
+    return make_range(CI->arg_begin(), CI->arg_end());
+}
+
+inline iterator_range<User::const_op_iterator> args(const CallInst *CI) {
+    return make_range(CI->arg_begin(), CI->arg_end());
+}
+
+inline iterator_range<User::op_iterator> args(CallInst &CI) {
+    return args(&CI);
+}
+
+inline iterator_range<User::const_op_iterator> args(const CallInst &CI) {
+    return args(&CI);
+}
+
+inline unsigned getNumArgOperands(const CallInst *CI) {
+#if LLVM_VERSION_MAJOR >= 8
+    return CI->arg_size();
+#else
+    return CI->getNumArgOperands();
+#endif
+}
+
+inline unsigned getNumArgOperands(const CallInst &CI) {
+    return getNumArgOperands(&CI);
+}
 
 /* ----------------------------------------------
  * -- PRINTING
@@ -58,14 +92,15 @@ callIsCompatible(const Function *F, const CallInst *CI,
                  CallCompatibility policy = CallCompatibility::LOOSE) {
     using namespace llvm;
 
+    auto ci_arg_size = getNumArgOperands(CI);
     if (policy != CallCompatibility::MATCHING_ARGS) {
         if (F->isVarArg()) {
-            if (F->arg_size() > CI->getNumArgOperands()) {
+            if (F->arg_size() > ci_arg_size) {
                 return false;
             }
-        } else if (F->arg_size() != CI->getNumArgOperands()) {
+        } else if (F->arg_size() != ci_arg_size) {
             if (policy == CallCompatibility::STRICT ||
-                F->arg_size() > CI->getNumArgOperands()) {
+                F->arg_size() > ci_arg_size) {
                 // too few arguments
                 return false;
             }
@@ -82,8 +117,7 @@ callIsCompatible(const Function *F, const CallInst *CI,
     }
 
     size_t idx = 0;
-    auto max_idx = CI->getNumArgOperands();
-    for (auto A = F->arg_begin(), E = F->arg_end(); idx < max_idx && A != E;
+    for (auto A = F->arg_begin(), E = F->arg_end(); idx < ci_arg_size && A != E;
          ++A, ++idx) {
         Type *CTy = CI->getArgOperand(idx)->getType();
         Type *ATy = A->getType();
