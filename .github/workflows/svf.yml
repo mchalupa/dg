@@ -82,6 +82,9 @@ jobs:
         run: |
           # Build directory name format is hard-coded in SVF tests...
 
+          # do not build with -Werror (needed for GCC 11.2.0)
+          sed -i 's/-Werror//' svf/CMakeLists.txt
+
           # WARNING: DO NOT SET CMAKE_BUILD_TYPE! (except Debug)
           # SVF expects that NDEBUG will never be defined!
           cmake -Ssvf \
