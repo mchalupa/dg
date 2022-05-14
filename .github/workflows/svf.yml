@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04]
+        os: [ubuntu-22.04]
         compiler: [gcc, clang]
 
     runs-on: ${{matrix.os}}
@@ -34,19 +34,11 @@ jobs:
           repository: SVF-tools/Test-Suite
           path: svf/Test-Suite
 
-      - name: '[LLVM 13] Add repositories'
-        run: |
-          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-13 main"
-
       - name: Install dependencies
         run: |
           sudo apt update
           sudo apt install ccache cmake ninja-build clang-13 llvm-13-dev \
                            libz3-dev
-
-          # FIXME: Remove when mlir dependency is removed from llvm-13-dev.
-          sudo apt install libmlir-13-dev
 
       - name: Set environment
         id: env
