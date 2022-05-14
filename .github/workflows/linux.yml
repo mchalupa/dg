@@ -44,7 +44,7 @@ jobs:
 
     steps:
       - name: Checkout DG
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: '[LLVM ${{matrix.llvm}}] Add repositories'
         if: matrix.llvm >= 15
