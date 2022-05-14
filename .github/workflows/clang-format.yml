@@ -6,16 +6,14 @@ on: [push, pull_request]
 jobs:
   Format:
     name: Find unformatted files
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout DG
         uses: actions/checkout@v3
 
-      - name: Install latest clang-format
+      - name: Install clang-format 14
         run: |
-          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-13 main"
-          sudo apt install clang-format-13
+          sudo apt install clang-format-14
 
       - name: Find unformatted files
         # Based on https://rigtorp.se/notes/clang-format/.
@@ -24,4 +22,4 @@ jobs:
           find . -regextype posix-extended \
                  -iregex '\./(include|lib|tests|tools)/.*\.(h|c|cpp|hpp)' \
                  -o -iregex '\./tests/catch2' -prune -type f | \
-              xargs clang-format-13 --style=file --dry-run -Werror --color=true
+              xargs clang-format-14 --style=file --dry-run -Werror --color=true
