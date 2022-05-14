@@ -8,9 +8,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        os: [macos-latest]
         build: [Debug, RelWithDebInfo]
 
-    runs-on: macos-latest
+    runs-on: ${{matrix.os}}
     env:
       # for colours in ninja
       CLICOLOR_FORCE: 1
