@@ -17,10 +17,10 @@ jobs:
 
     steps:
       - name: Checkout DG
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Checkout TSL Hopscotch
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: Tessil/hopscotch-map
           path: tsl-hopscotch

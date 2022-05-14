@@ -16,17 +16,17 @@ jobs:
 
     steps:
       - name: Checkout DG
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Checkout SVF
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: SVF-2.4
           repository: SVF-tools/SVF
           path: svf
 
       - name: Checkout SVF test-suite
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           # ref corresponding to the SVF ref above
           ref: 2338ede904c1f46293b64ccf32feb09b3904401f
