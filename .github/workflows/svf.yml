@@ -7,9 +7,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-20.04]
         compiler: [gcc, clang]
 
-    runs-on: ubuntu-20.04
+    runs-on: ${{matrix.os}}
     env:
       # for colours in ninja
       CLICOLOR_FORCE: 1
@@ -82,8 +83,8 @@ jobs:
         uses: actions/cache@v2
         with:
           path: .ccache
-          key: ubuntu-20.04-svf-${{matrix.compiler}}-${{steps.env.outputs.timestamp}}
-          restore-keys: ubuntu-20.04-svf-${{matrix.compiler}}
+          key: ${{matrix.os}}-svf-${{matrix.compiler}}-${{steps.env.outputs.timestamp}}
+          restore-keys: ${{matrix.os}}-svf-${{matrix.compiler}}
 
       - name: Build SVF
         run: |

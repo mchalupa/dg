@@ -7,10 +7,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-20.04]
         compiler: [gcc, clang]
         hashmap: [tsl-hopscotch]
 
-    runs-on: ubuntu-20.04
+    runs-on: ${{matrix.os}}
     env:
       # for colours in ninja
       CLICOLOR_FORCE: 1
@@ -71,8 +72,8 @@ jobs:
         uses: actions/cache@v2
         with:
           path: .ccache
-          key: ubuntu-20.04-${{matrix.hashmap}}-${{matrix.compiler}}-${{steps.env.outputs.timestamp}}
-          restore-keys: ubuntu-20.04-${{matrix.hashmap}}-${{matrix.compiler}}
+          key: ${{matrix.os}}-${{matrix.hashmap}}-${{matrix.compiler}}-${{steps.env.outputs.timestamp}}
+          restore-keys: ${{matrix.os}}-${{matrix.hashmap}}-${{matrix.compiler}}
 
       - name: Configure CMake project
         run: |
