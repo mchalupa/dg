@@ -94,7 +94,7 @@ jobs:
           echo "::set-output name=timestamp::$(date -u -Iseconds)"
 
       - name: Set up ccache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: .ccache
           key: ${{matrix.os}}-${{matrix.llvm}}-${{matrix.compiler}}-${{matrix.type}}-${{steps.env.outputs.timestamp}}
