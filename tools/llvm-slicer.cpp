@@ -211,11 +211,10 @@ int main(int argc, char *argv[]) {
     }
     if (cutoff_diverging) {
         DBG(llvm - slicer, "Searching for slicing criteria values");
-        auto csvalues =
-                getSlicingCriteriaValues(*M.get(), options.slicingCriteria,
-                                         options.legacySlicingCriteria,
-                                         options.legacySecondarySlicingCriteria,
-                                         criteria_are_next_instr);
+        auto csvalues = getSlicingCriteriaValues(
+                *M, options.slicingCriteria, options.legacySlicingCriteria,
+                options.legacySecondarySlicingCriteria,
+                criteria_are_next_instr);
         if (csvalues.empty()) {
             llvm::errs() << "No reachable slicing criteria: '"
                          << options.slicingCriteria << "' '"
@@ -232,7 +231,7 @@ int main(int argc, char *argv[]) {
 
         DBG(llvm - slicer, "Cutting off diverging branches");
         if (!llvmdg::cutoffDivergingBranches(
-                    *M.get(), options.dgOptions.entryFunction, csvalues)) {
+                    *M, options.dgOptions.entryFunction, csvalues)) {
             errs() << "[llvm-slicer]: Failed cutting off diverging branches\n";
             return 1;
         }
