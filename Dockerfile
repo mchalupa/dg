@@ -1,7 +1,7 @@
 # --------------------------------------------------
 # Base container
 # --------------------------------------------------
-FROM docker.io/ubuntu:focal AS base
+FROM docker.io/ubuntu:jammy AS base
 
 RUN set -e
 
