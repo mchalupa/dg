@@ -88,14 +88,6 @@ llvm::cl::opt<std::string> annotationOpts(
         llvm::cl::value_desc("val1,val2,..."), llvm::cl::init(""),
         llvm::cl::cat(SlicingOpts));
 
-llvm::cl::opt<bool> cutoff_diverging(
-        "cutoff-diverging",
-        llvm::cl::desc(
-                "Cutoff diverging paths. That is, call abort() on those paths "
-                "that may not reach the slicing criterion "
-                " (default=true)."),
-        llvm::cl::init(true), llvm::cl::cat(SlicingOpts));
-
 static void maybe_print_statistics(llvm::Module *M,
                                    const char *prefix = nullptr) {
     if (!statistics)
@@ -202,14 +194,13 @@ int main(int argc, char *argv[]) {
     /// ---------------
     // slice the code
     /// ---------------
-    if (cutoff_diverging) {
-        if (options.dgOptions.threads) {
-            errs() << "[llvm-slicer] threads are enabled, not cutting off "
-                      "diverging\n";
-            cutoff_diverging = false;
-        }
+    if (options.cutoffDiverging && options.dgOptions.threads) {
+        llvm::errs() << "[llvm-slicer] threads are enabled, not cutting off "
+                        "diverging\n";
+        options.cutoffDiverging = false;
     }
-    if (cutoff_diverging) {
+
+    if (options.cutoffDiverging) {
         DBG(llvm - slicer, "Searching for slicing criteria values");
         auto csvalues = getSlicingCriteriaValues(
                 *M, options.slicingCriteria, options.legacySlicingCriteria,
