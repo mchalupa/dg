@@ -63,17 +63,6 @@ llvm::cl::opt<bool> dump_bb_only(
                        " (default=false)."),
         llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
-llvm::cl::opt<bool> criteria_are_next_instr(
-        "criteria-are-next-instr",
-        llvm::cl::desc(
-                "Assume that slicing criteria are not the call-sites\n"
-                "of the given function, but the instructions that\n"
-                "follow the call. I.e. the call is used just to mark\n"
-                "the instruction.\n"
-                "E.g. for 'crit' being set as the criterion, slicing critera "
-                "are all instructions that follow any call of 'crit'.\n"),
-        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
-
 llvm::cl::opt<std::string> annotationOpts(
         "annotate",
         llvm::cl::desc(
@@ -205,7 +194,7 @@ int main(int argc, char *argv[]) {
         auto csvalues = getSlicingCriteriaValues(
                 *M, options.slicingCriteria, options.legacySlicingCriteria,
                 options.legacySecondarySlicingCriteria,
-                criteria_are_next_instr);
+                options.criteriaAreNextInstr);
         if (csvalues.empty()) {
             llvm::errs() << "No reachable slicing criteria: '"
                          << options.slicingCriteria << "' '"
@@ -243,7 +232,8 @@ int main(int argc, char *argv[]) {
     if (!getSlicingCriteriaNodes(slicer.getDG(), options.slicingCriteria,
                                  options.legacySlicingCriteria,
                                  options.legacySecondarySlicingCriteria,
-                                 criteria_nodes, criteria_are_next_instr)) {
+                                 criteria_nodes,
+                                 options.criteriaAreNextInstr)) {
         llvm::errs() << "ERROR: Failed finding slicing criteria: '"
                      << options.slicingCriteria << "'\n";
 
