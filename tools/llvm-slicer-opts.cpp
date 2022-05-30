@@ -345,6 +345,13 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit,
             "cda-interproc", llvm::cl::desc("Alias to interproc-cd"),
             llvm::cl::aliasopt(interprocCd), llvm::cl::cat(SlicingOpts));
 
+    llvm::cl::opt<bool> cutoffDiverging(
+            "cutoff-diverging",
+            llvm::cl::desc("Cutoff diverging paths. That is, call abort() on "
+                           "those paths that may not reach the slicing "
+                           "criterion (default=true)."),
+            llvm::cl::init(true), llvm::cl::cat(SlicingOpts));
+
     ////////////////////////////////////
     // ===-- End of the options --=== //
     ////////////////////////////////////
@@ -378,6 +385,7 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit,
     options.preservedFunctions = splitList(preservedFuns);
     options.removeSlicingCriteria = removeSlicingCriteria;
     options.forwardSlicing = forwardSlicing;
+    options.cutoffDiverging = cutoffDiverging;
 
     auto &dgOptions = options.dgOptions;
     auto &PTAOptions = dgOptions.PTAOptions;
