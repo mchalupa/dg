@@ -411,7 +411,7 @@ LLVMPointerGraphBuilder::buildInstruction(const llvm::Instruction &Inst) {
         seq = &createUnknown(&Inst);
         break;
     default:
-        llvm::errs() << Inst << "\n";
+        llvm::errs() << "[pta] UNHANDLED: " << Inst << "\n";
         assert(0 && "Unhandled instruction");
         seq = &createUnknown(&Inst);
     }
@@ -432,6 +432,9 @@ bool LLVMPointerGraphBuilder::isRelevantInstruction(
     case Instruction::Switch:
     case Instruction::Unreachable:
         return false;
+    case Instruction::Fence:
+        // this one is relevant only if we analyze threads
+        return _options.threads;
     case Instruction::Call:
         return isRelevantCall(&Inst, invalidate_nodes, _options);
     default:
