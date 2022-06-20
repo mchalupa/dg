@@ -530,8 +530,15 @@ static std::vector<SlicingCriteriaSet> getSlicingCriteriaInstructions(
 
         if (!SC.primary.empty()) {
             llvm::errs() << "SC: Matched '" << primsec[0] << "' to: \n";
+            size_t n = 0;
             for (const auto *val : SC.primary) {
+                if (++n > 10)
+                    break;
                 llvm::errs() << "  " << *val << "\n";
+            }
+            if (SC.primary.size() >= n) {
+                llvm::errs() << " ... and  " << SC.primary.size() - n + 1
+                             << " more\n";
             }
 
             if (criteria_are_next_instr) {
@@ -541,8 +548,15 @@ static std::vector<SlicingCriteriaSet> getSlicingCriteriaInstructions(
                 auto newset = mapToNextInstr(SC.primary);
                 SC.primary.swap(newset);
 
+                n = 0;
                 for (const auto *val : SC.primary) {
+                    if (++n > 10)
+                        break;
                     llvm::errs() << "  SC (next): " << *val << "\n";
+                }
+                if (SC.primary.size() >= n) {
+                    llvm::errs() << " ... and  " << SC.primary.size() - n + 1
+                                 << " more\n";
                 }
             }
         }
@@ -552,10 +566,17 @@ static std::vector<SlicingCriteriaSet> getSlicingCriteriaInstructions(
                                     constructed_only);
 
             if (!SC.secondary.empty()) {
+                size_t n = 0;
                 llvm::errs() << "SC: Matched '" << primsec[1]
                              << "' (secondary) to: \n";
                 for (const auto *val : SC.secondary) {
+                    if (++n > 10)
+                        break;
                     llvm::errs() << "  " << *val << "\n";
+                }
+                if (SC.secondary.size() >= n) {
+                    llvm::errs() << " ... and  " << SC.primary.size() - n + 1
+                                 << " more\n";
                 }
             }
 
