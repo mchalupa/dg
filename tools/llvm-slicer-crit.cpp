@@ -1164,28 +1164,24 @@ getSlicingCriteriaValues(llvm::Module &M, const std::string &slicingCriteria,
                          bool criteria_are_next_instr) {
     std::string criteria = slicingCriteria;
     if (legacySlicingCriteria != "") {
-        if (slicingCriteria != "")
-            criteria += ";";
+        auto legacyCriteriaParts = splitList(legacySlicingCriteria, ',');
+        for (auto &legacyCriterion : legacyCriteriaParts) {
+            if (criteria != "")
+                criteria += ";";
 
-        auto parts = splitList(legacySlicingCriteria, ':');
-        if (parts.size() == 2) {
-            if (legacySecondaryCriteria != "") {
-                criteria += ";" + parts[0] + "#" + parts[1] + "|" +
-                            legacySecondaryCriteria + "()";
-            } else {
+            auto parts = splitList(legacyCriterion, ':');
+            if (parts.size() == 2) {
                 criteria += parts[0] + "#" + parts[1];
-            }
-        } else if (parts.size() == 1) {
-            if (legacySecondaryCriteria != "") {
-                criteria += ";" + legacySlicingCriteria + "()|" +
-                            legacySecondaryCriteria + "()";
+            } else if (parts.size() == 1) {
+                criteria += legacyCriterion + "()";
             } else {
-                criteria += legacySlicingCriteria + "()";
+                llvm::errs()
+                        << "Unsupported criteria: " << legacyCriterion << "\n";
+                return {};
             }
-        } else {
-            llvm::errs() << "Unsupported criteria: " << legacySlicingCriteria
-                         << "\n";
-            return {};
+            if (legacySecondaryCriteria != "") {
+                criteria += "|" + legacySecondaryCriteria + "()";
+            }
         }
     }
 
