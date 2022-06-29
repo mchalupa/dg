@@ -369,14 +369,38 @@ LLVMPointerGraphBuilder::createInsertElement(const llvm::Instruction *Inst) {
     PSNode *lastNode = nullptr;
     PSNodesSeq seq;
 
-    if (llvm::isa<llvm::UndefValue>(Inst->getOperand(0))) {
+    auto *Ty = llvm::cast<llvm::InsertElementInst>(Inst)->getType();
+    auto elemSize = llvmutils::getAllocatedSize(Ty->getContainedType(0),
+                                                &M->getDataLayout());
+    auto *vec = Inst->getOperand(0);
+    if (llvm::isa<llvm::UndefValue>(vec) || llvm::isa<llvm::Constant>(vec)) {
         tempAlloc = PSNodeAlloc::get(PS.create<PSNodeType::ALLOC>());
         tempAlloc->setIsTemporary();
         seq.append(tempAlloc);
         lastNode = tempAlloc;
+        if (llvm::isa<llvm::Constant>(vec) &&
+            !llvm::isa<llvm::UndefValue>(vec)) {
+            // populate the allocation with elements of the constant
+            unsigned idx = 0;
+            for (auto &op : llvm::cast<llvm::ConstantVector>(vec)->operands()) {
+                auto *ptr = getOperand(op);
+                auto *GEP =
+                        PS.create<PSNodeType::GEP>(tempAlloc, elemSize * idx);
+                auto *S = PS.create<PSNodeType::STORE>(ptr, GEP);
+
+                seq.append(GEP);
+                seq.append(S);
+
+                // TODO: do we need adding the successors here??
+                lastNode->addSuccessor(GEP);
+                GEP->addSuccessor(S);
+                lastNode = S;
+                ++idx;
+            }
+        }
     } else {
-        auto *fromTempAlloc = PSNodeAlloc::get(getOperand(Inst->getOperand(0)));
-        assert(fromTempAlloc);
+        auto *fromTempAlloc = PSNodeAlloc::get(getOperand(vec));
+        assert(fromTempAlloc && "Is not an allocation node");
         assert(fromTempAlloc->isTemporary());
 
         tempAlloc = PSNodeAlloc::get(PS.create<PSNodeType::ALLOC>());
@@ -389,6 +413,7 @@ LLVMPointerGraphBuilder::createInsertElement(const llvm::Instruction *Inst) {
         auto *cpy = PS.create<PSNodeType::MEMCPY>(fromTempAlloc, tempAlloc,
                                                   Offset::UNKNOWN);
         seq.append(cpy);
+        tempAlloc->addSuccessor(cpy);
         lastNode = cpy;
     }
 
@@ -401,9 +426,6 @@ LLVMPointerGraphBuilder::createInsertElement(const llvm::Instruction *Inst) {
     auto idx = llvmutils::getConstantValue(Inst->getOperand(2));
     assert(idx != ~((uint64_t) 0) && "Invalid index");
 
-    auto *Ty = llvm::cast<llvm::InsertElementInst>(Inst)->getType();
-    auto elemSize = llvmutils::getAllocatedSize(Ty->getContainedType(0),
-                                                &M->getDataLayout());
     // also, set the size of the temporary allocation
     tempAlloc->setSize(llvmutils::getAllocatedSize(Ty, &M->getDataLayout()));
 
