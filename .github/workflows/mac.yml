@@ -50,6 +50,7 @@ jobs:
                 -GNinja \
                 -DCMAKE_BUILD_TYPE:STRING=${{matrix.build}} \
                 -DUSE_SANITIZERS:BOOL=ON \
+                -DENABLE_IPO:BOOL=OFF \
                 -DLLVM_DIR:PATH="$($(brew --prefix llvm@14)/bin/llvm-config --cmakedir)"
         env:
           # for coloured output

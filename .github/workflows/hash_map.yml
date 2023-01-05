@@ -81,6 +81,7 @@ jobs:
                 -B_build \
                 -GNinja \
                 -DUSE_SANITIZERS:BOOL=ON \
+                -DENABLE_IPO:BOOL=OFF \
                 -DLLVM_DIR:PATH="$(llvm-config-10 --cmakedir)" \
                 -D${HASHMAP}:PATH="$GITHUB_WORKSPACE/${{matrix.hashmap}}"
 

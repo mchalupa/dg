@@ -103,6 +103,7 @@ jobs:
                 -B_build \
                 -GNinja \
                 -DUSE_SANITIZERS:BOOL=ON \
+                -DENABLE_IPO:BOOL=OFF \
                 -DLLVM_DIR:PATH="$(llvm-config-13 --cmakedir)" \
                 -DSVF_DIR:PATH="$GITHUB_WORKSPACE/svf/Release-build"
 

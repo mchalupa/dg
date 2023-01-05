@@ -109,6 +109,7 @@ jobs:
                 -GNinja \
                 -DCMAKE_BUILD_TYPE:STRING="${{matrix.type}}" \
                 -DUSE_SANITIZERS:BOOL=ON \
+                -DENABLE_IPO:BOOL=OFF \
                 -DLLVM_DIR:PATH="/usr/lib/llvm-${{matrix.llvm}}/lib/cmake/llvm"
                 # llvm-config-3.9 does not take --cmakedir yet!
 
