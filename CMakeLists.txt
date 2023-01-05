@@ -14,6 +14,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 OPTION(LLVM_DG "Support for LLVM Dependency graph" ON)
 OPTION(ENABLE_CFG "Add support for CFG edges to the graph" ON)
 OPTION(NO_EXCEPTIONS "Compile with -fno-exceptions (ON by default)" ON)
+OPTION(ENABLE_IPO "Enable interprocedural optimizations" ON)
 
 if(NOT CMAKE_BUILD_TYPE)
     message(STATUS "Build type not set. Setting default.")
@@ -22,6 +23,21 @@ endif()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "RelWithDebInfo"
                                                      "MinSizeRel" "Release")
+
+if (ENABLE_IPO)
+	if (${CMAKE_BUILD_TYPE} STREQUAL "Release")
+		cmake_policy(SET CMP0069 NEW)
+		include(CheckIPOSupported)
+		check_ipo_supported(RESULT ipo_supported)
+		if (ipo_supported)
+			message(STATUS "IPO are supported, enabling")
+			set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+		else()
+			message(WARNING "IPO are unsupported, disabling")
+		endif()
+	endif()
+endif(ENABLE_IPO)
+
 
 if (LLVM_DG)
 	# for llvm dg we need cfg and postdom edges
