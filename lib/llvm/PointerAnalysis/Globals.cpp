@@ -76,11 +76,10 @@ void LLVMPointerGraphBuilder::handleGlobalVariableInitializer(
 
 static uint64_t getAllocatedSize(const llvm::GlobalVariable *GV,
                                  const llvm::DataLayout *DL) {
-    llvm::Type *Ty = GV->getType()->getContainedType(0);
-    if (!Ty->isSized())
+    if (!GV->getType()->isSized())
         return 0;
 
-    return DL->getTypeAllocSize(Ty);
+    return DL->getTypeAllocSize(GV->getType());
 }
 
 void LLVMPointerGraphBuilder::buildGlobals() {
