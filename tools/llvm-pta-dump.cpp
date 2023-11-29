@@ -781,6 +781,11 @@ int main(int argc, char *argv[]) {
         callgraph = true;
     }
 
+    if (todot && !dump_ir) {
+        llvm::errs() << "Switch -dot requires -ir, switching -ir on.";
+        dump_ir = true;
+    }
+
     llvm::LLVMContext context;
     std::unique_ptr<llvm::Module> M =
             parseModule("llvm-pta-dump", context, options);
