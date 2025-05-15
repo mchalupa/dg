@@ -496,7 +496,6 @@ LLVMPointerGraphBuilder::createAtomicRMW(const llvm::Instruction *Inst) {
         R->addSuccessor(M);
         break;
     case AtomicRMWInst::Sub:
-        break;
         cval = Offset(0) -
                Offset(llvmutils::getConstantValue(RMW->getValOperand()));
         M = PS.create<PSNodeType::GEP>(ptr, cval);
