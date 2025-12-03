@@ -333,6 +333,7 @@ class LLVMPointerGraphBuilder {
     PSNodesSeq &createAlloc(const llvm::Instruction *Inst);
     PSNode *createDynamicAlloc(const llvm::CallInst *CInst,
                                AllocationFunction type);
+    PSNodesSeq &createFreeze(const llvm::Instruction *Inst);
     PSNodesSeq &createStore(const llvm::Instruction *Inst);
     PSNodesSeq &createLoad(const llvm::Instruction *Inst);
     PSNodesSeq &createGEP(const llvm::Instruction *Inst);

@@ -516,5 +516,14 @@ LLVMPointerGraphBuilder::createAtomicRMW(const llvm::Instruction *Inst) {
     return addNode(Inst, ret);
 }
 
+LLVMPointerGraphBuilder::PSNodesSeq &
+LLVMPointerGraphBuilder::createFreeze(const llvm::Instruction *Inst) {
+    const llvm::Value *op = Inst->getOperand(0);
+    PSNode *op1 = getOperand(op);
+    PSNode *node = PS.create<PSNodeType::CAST>(op1);
+    assert(node);
+    return addNode(Inst, node);
+}
+
 } // namespace pta
 } // namespace dg

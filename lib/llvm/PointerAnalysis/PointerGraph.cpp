@@ -410,6 +410,8 @@ LLVMPointerGraphBuilder::buildInstruction(const llvm::Instruction &Inst) {
                         "precision\n";
         seq = &createUnknown(&Inst);
         break;
+    case Instruction::Freeze:
+        return createFreeze(&Inst);    
     default:
         llvm::errs() << "[pta] UNHANDLED: " << Inst << "\n";
         assert(0 && "Unhandled instruction");
